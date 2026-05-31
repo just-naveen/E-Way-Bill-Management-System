@@ -1,0 +1,326 @@
+<!-- Loading -->
+<div class="loading-wrap" *ngIf="loading">
+  <div class="spinner"></div>
+  <span>Loading email settings...</span>
+</div>
+
+<div *ngIf="!loading">
+
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header">
+    <div class="ph-left">
+      <div class="ph-title">📧 Email Alerts</div>
+      <div class="ph-sub">Configure automatic expiry warning emails for E-Way Bills</div>
+    </div>
+    <div class="status-toggle" [class.st-active]="config.enabled">
+      <span class="st-dot"></span>
+      {{ statusLabel }}
+    </div>
+  </div>
+
+  <!-- ── SUCCESS / ERROR ── -->
+  <div class="alert-success" *ngIf="successMsg">{{ successMsg }}</div>
+  <div class="alert-error"   *ngIf="errorMsg">{{ errorMsg }}</div>
+
+  <!-- ── LAST RUN BANNER ── -->
+  <div class="last-run-bar" *ngIf="config.last_run">
+    🕐 Last alert batch: <strong>{{ lastRunText }}</strong> —
+    <strong>{{ config.last_run_count }}</strong> email(s) sent
+  </div>
+
+  <div class="settings-grid">
+
+    <!-- ════ LEFT COLUMN ════ -->
+    <div class="settings-col">
+
+      <!-- SECTION: Master Toggle -->
+      <div class="settings-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="st-dot"></span>
+            Alert Status
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="toggle-row">
+            <div class="tr-info">
+              <div class="tr-label">Enable Expiry Alerts</div>
+              <div class="tr-sub">
+                Automatically send warning emails 24 hours before any E-Way Bill expires
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="config.enabled">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="tr-info">
+              <div class="tr-label">Notify on Cancellation</div>
+              <div class="tr-sub">Also send email when an EWB is cancelled</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="config.notify_on_cancel">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: Schedule -->
+      <div class="settings-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="st-dot" style="background:#0891b2"></span>
+            Schedule
+          </div>
+        </div>
+        <div class="card-body">
+
+          <div class="field-group">
+            <label class="field-label">Send alerts daily at</label>
+            <div class="time-input-wrap">
+              <span class="ti-icon">⏰</span>
+              <input
+                type="time"
+                class="field-input time-input"
+                [(ngModel)]="config.send_time" />
+            </div>
+            <div class="field-hint">
+              The system will scan for expiring EWBs and send emails at this time every day
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Warn how many hours before expiry?</label>
+            <div class="hours-selector">
+              <button
+                class="hs-btn"
+                [class.hs-active]="config.alert_hours_before === 12"
+                (click)="config.alert_hours_before = 12">12h</button>
+              <button
+                class="hs-btn"
+                [class.hs-active]="config.alert_hours_before === 24"
+                (click)="config.alert_hours_before = 24">24h</button>
+              <button
+                class="hs-btn"
+                [class.hs-active]="config.alert_hours_before === 48"
+                (click)="config.alert_hours_before = 48">48h</button>
+              <button
+                class="hs-btn"
+                [class.hs-active]="config.alert_hours_before === 72"
+                (click)="config.alert_hours_before = 72">72h</button>
+            </div>
+            <div class="field-hint">
+              EWBs expiring within <strong>{{ config.alert_hours_before }} hours</strong> will trigger an alert
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECTION: Email Content -->
+      <div class="settings-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="st-dot" style="background:#d97706"></span>
+            Email Content
+          </div>
+        </div>
+        <div class="card-body">
+
+          <div class="toggle-row">
+            <div class="tr-info">
+              <div class="tr-label">Include EWB Details</div>
+              <div class="tr-sub">EWB number, status, valid upto date, route</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="config.include_ewb_details">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-row">
+            <div class="tr-info">
+              <div class="tr-label">Include Goods Details</div>
+              <div class="tr-sub">HSN code, description, quantity and value</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="config.include_goods_details">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <button class="preview-btn" (click)="togglePreview()">
+            {{ showPreview ? '🙈 Hide Preview' : '👁 Preview Email' }}
+          </button>
+
+          <!-- Email Preview -->
+          <div class="email-preview" *ngIf="showPreview">
+            <div class="ep-bar">
+              <span class="ep-label">Email Preview</span>
+              <span class="ep-subject">Subject: ⚠️ EWB Expiry Alert — Action Required</span>
+            </div>
+            <div class="ep-body">
+              <div class="ep-header-block">
+                <span class="ep-logo">🚚 WayBillPro</span>
+                <span class="ep-alert-tag">EXPIRY ALERT</span>
+              </div>
+              <div class="ep-greeting">Hello,</div>
+              <div class="ep-para">
+                The following E-Way Bill(s) are expiring within
+                <strong>{{ config.alert_hours_before }} hours</strong>.
+                Please renew them before the deadline to avoid legal penalties.
+              </div>
+              <div class="ep-ewb-row" *ngIf="config.include_ewb_details">
+                <div class="ep-ewb-no">EWB #1234567890</div>
+                <div class="ep-ewb-meta">Chennai, TN → Mumbai, MH · 1338 km</div>
+                <div class="ep-ewb-expiry">⏰ Expires: 06 Apr 2026, 08:00 AM</div>
+                <div class="ep-ewb-status status-warning">⚠️ Expiring Soon</div>
+              </div>
+              <div class="ep-goods-row" *ngIf="config.include_goods_details">
+                <span class="ep-goods-label">HSN: 8471</span>
+                <span class="ep-goods-label">Laptop computers</span>
+                <span class="ep-goods-label">10 NOS · ₹5,00,000</span>
+              </div>
+              <div class="ep-action">
+                <span class="ep-btn">Renew E-Way Bill →</span>
+              </div>
+              <div class="ep-footer">
+                This is an automated alert from WayBillPro. Do not reply to this email.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /left col -->
+
+    <!-- ════ RIGHT COLUMN ════ -->
+    <div class="settings-col">
+
+      <!-- SECTION: Recipients -->
+      <div class="settings-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="st-dot" style="background:#059669"></span>
+            Recipients
+          </div>
+          <span class="section-badge">{{ config.recipient_emails.length }}/10</span>
+        </div>
+        <div class="card-body">
+
+          <div class="field-group">
+            <label class="field-label">Add email addresses</label>
+            <div class="email-input-row">
+              <div class="email-input-wrap">
+                <span class="ei-icon">✉️</span>
+                <input
+                  type="email"
+                  class="field-input"
+                  placeholder="name@company.com"
+                  [(ngModel)]="newEmail"
+                  (keydown)="onEmailKeydown($event)"
+                  maxlength="100" />
+              </div>
+              <button class="add-btn" (click)="addEmail()">Add</button>
+            </div>
+            <div class="field-error" *ngIf="emailError">{{ emailError }}</div>
+            <div class="field-hint">Press Enter or comma to add · Max 10 recipients</div>
+          </div>
+
+          <!-- Chips -->
+          <div class="email-chips" *ngIf="config.recipient_emails.length > 0">
+            <div class="chip" *ngFor="let email of config.recipient_emails">
+              <span class="chip-icon">✉️</span>
+              <span class="chip-text">{{ email }}</span>
+              <button class="chip-remove" (click)="removeEmail(email)">✕</button>
+            </div>
+          </div>
+
+          <div class="empty-recipients" *ngIf="config.recipient_emails.length === 0">
+            <div class="er-icon">📭</div>
+            <div class="er-text">No recipients added yet.<br>Add at least one email to enable alerts.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SECTION: Test & Save -->
+      <div class="settings-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="st-dot" style="background:#6366f1"></span>
+            Actions
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- Test email -->
+          <div class="action-row">
+            <div class="ar-info">
+              <div class="ar-label">Send Test Email</div>
+              <div class="ar-sub">Send a sample alert to all recipients to verify delivery</div>
+            </div>
+            <button
+              class="btn-test"
+              (click)="sendTest()"
+              [disabled]="testing || config.recipient_emails.length === 0">
+              <span *ngIf="testing" class="btn-spinner"></span>
+              <span>{{ testing ? 'Sending...' : '📨 Send Test' }}</span>
+            </button>
+          </div>
+
+          <div class="test-msg" *ngIf="testMsg">{{ testMsg }}</div>
+
+          <div class="divider"></div>
+
+          <!-- Save -->
+          <button class="btn-save" (click)="save()" [disabled]="saving">
+            <span *ngIf="saving" class="btn-spinner"></span>
+            <span>{{ saving ? 'Saving...' : '💾 Save Settings' }}</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- SECTION: How it works -->
+      <div class="settings-card info-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="st-dot" style="background:#64748b"></span>
+            How It Works
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="how-step">
+            <div class="hs-num">1</div>
+            <div class="hs-text">Every day at <strong>{{ config.send_time }}</strong>, the system scans all active E-Way Bills</div>
+          </div>
+          <div class="how-step">
+            <div class="hs-num">2</div>
+            <div class="hs-text">Bills expiring within <strong>{{ config.alert_hours_before }} hours</strong> are collected</div>
+          </div>
+          <div class="how-step">
+            <div class="hs-num">3</div>
+            <div class="hs-text">One email is sent to all <strong>{{ config.recipient_emails.length || 0 }} recipient(s)</strong> with the full list</div>
+          </div>
+          <div class="how-step">
+            <div class="hs-num">4</div>
+            <div class="hs-text">Django runs this automatically via <code>manage.py send_ewb_alerts</code> + a cron job</div>
+          </div>
+
+          <div class="cron-box">
+            <div class="cron-label">Recommended cron (runs daily at set time):</div>
+            <code class="cron-code">0 8 * * * cd /path/to/project && python manage.py send_ewb_alerts</code>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right col -->
+
+  </div><!-- /settings-grid -->
+
+</div>

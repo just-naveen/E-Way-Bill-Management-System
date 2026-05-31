@@ -1,0 +1,502 @@
+<!-- Alerts -->
+<div class="alert alert-success" *ngIf="successMsg">✅ {{ successMsg }}</div>
+<div class="alert alert-danger"  *ngIf="errorMsg">❌ {{ errorMsg }}</div>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-title">
+    <div class="page-title-icon">📦</div>
+    <div><h1>Consignment Booking</h1><p>Fill details step by step to create a new consignment</p></div>
+  </div>
+  <button class="btn btn-outline" (click)="viewTable()">{{ showTable ? '📝 New Booking' : '📋 View All' }}</button>
+</div>
+
+<!-- TABLE VIEW -->
+<div *ngIf="showTable" class="section-card">
+  <div class="section-header">
+    📋 Consignment List
+    <span class="header-count" *ngIf="filteredConsignments.length > 0">{{ filteredConsignments.length }} records</span>
+  </div>
+  <div class="list-toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" [(ngModel)]="searchText" (input)="applyFilters()" placeholder="Search by consignment no, origin, destination...">
+      <span class="search-clear" *ngIf="searchText" (click)="clearSearch()">✕</span>
+    </div>
+    <div class="filter-group">
+      <div class="filter-item"><label>From</label><input type="date" [(ngModel)]="filterFrom" (change)="applyFilters()"></div>
+      <div class="filter-item"><label>To</label><input type="date" [(ngModel)]="filterTo" (change)="applyFilters()"></div>
+      <div class="filter-item">
+        <label>Service</label>
+        <select [(ngModel)]="filterService" (change)="applyFilters()">
+          <option value="">All</option>
+          <option value="standard">Standard</option>
+          <option value="express">Express</option>
+          <option value="overnight">Overnight</option>
+        </select>
+      </div>
+      <button class="btn-filter-clear" (click)="clearFilters()" *ngIf="hasActiveFilters">✕ Clear</button>
+    </div>
+  </div>
+  <div class="section-body" style="padding:0">
+    <div *ngIf="tableLoading" class="skeleton-wrap">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]">
+        <div class="skeleton-cell w-8"></div><div class="skeleton-cell w-32"></div>
+        <div class="skeleton-cell w-24"></div><div class="skeleton-cell w-20"></div>
+        <div class="skeleton-cell w-20"></div><div class="skeleton-cell w-16"></div>
+        <div class="skeleton-cell w-16"></div><div class="skeleton-cell w-24"></div>
+      </div>
+    </div>
+    <table *ngIf="!tableLoading">
+      <thead>
+        <tr>
+          <th>#</th><th>Consignment No</th><th>Booking Date</th><th>Route</th>
+          <th>Consignor</th><th>Service</th><th>EWB</th><th>Net Amount</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of filteredConsignments; let i = index">
+          <td>{{ i+1 }}</td>
+          <td><strong class="cns-mono">{{ c.consignment_no }}</strong></td>
+          <td>{{ c.booking_date | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <div class="route-cell">
+              <span>{{ c.origin }}</span><span class="route-arrow">→</span><span>{{ c.destination }}</span>
+            </div>
+          </td>
+          <td>{{ c.consignor_name || '—' }}</td>
+          <td>
+            <span class="badge" [ngClass]="{'badge-info':c.service_type==='standard','badge-warning':c.service_type==='express','badge-purple':c.service_type==='overnight'}">
+              {{ c.service_type | titlecase }}
+            </span>
+          </td>
+          <td>
+            <!-- EWB column: show status based on invoice value vs threshold -->
+            <span *ngIf="c.ewaybill_no" class="ewb-chip ewb-ok" title="EWB: {{ c.ewaybill_no }}">✅ {{ c.ewaybill_no }}</span>
+            <span *ngIf="!c.ewaybill_no" class="ewb-chip ewb-pending">⚠️ Pending EWB</span>
+          </td>
+          <td><strong class="amount-cell">₹{{ c.net_total_amt | number:'1.2-2' }}</strong></td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-action btn-print" (click)="printLR(c)" title="Print LR">🖨️</button>
+              <button class="btn-action btn-del"   (click)="confirmDelete(c)" title="Delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredConsignments.length === 0 && !tableLoading">
+          <td colspan="9">
+            <div class="empty-state">
+              <div style="font-size:36px">📦</div>
+              <div *ngIf="hasActiveFilters">No consignments match your filters</div>
+              <div *ngIf="!hasActiveFilters">No consignments found</div>
+              <button class="btn btn-outline" *ngIf="hasActiveFilters" (click)="clearFilters()">Clear Filters</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Confirm Delete -->
+<div class="confirm-overlay" *ngIf="showConfirm" (click)="cancelDelete()">
+  <div class="confirm-box" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Delete Consignment?</div>
+    <div class="confirm-msg">Are you sure you want to delete <strong>{{ deleteTarget?.consignment_no }}</strong>? This cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+      <button class="btn btn-danger" (click)="deleteConfirmed()" [disabled]="deleting">
+        <span *ngIf="deleting" class="mini-spinner dark"></span>
+        {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Waybill Print Modal -->
+<div class="waybill-overlay" *ngIf="showPrintPreview" (click)="closePrint()">
+  <div class="waybill-modal" (click)="$event.stopPropagation()">
+    <div class="no-print" style="display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;border-radius:12px 12px 0 0">
+      <button class="btn btn-outline" style="font-size:13px;padding:8px 16px" (click)="triggerPrint()">🖨️ Print</button>
+      <button class="btn btn-primary" style="font-size:13px;padding:8px 16px" (click)="downloadConsignmentPdf()" [disabled]="pdfDownloading">
+        <span *ngIf="!pdfDownloading">⬇ Download PDF</span>
+        <span *ngIf="pdfDownloading">⏳ Downloading...</span>
+      </button>
+      <button class="btn btn-secondary" style="font-size:13px;padding:8px 16px" (click)="closePrint()">✕ Close</button>
+    </div>
+    <app-waybill-print [consignment]="savedConsignment"></app-waybill-print>
+  </div>
+</div>
+
+<!-- WIZARD -->
+<div *ngIf="!showTable">
+
+  <!-- Progress Bar -->
+  <div class="wiz-progress">
+    <div class="wiz-step" *ngFor="let s of steps; let i = index" [class.active]="currentStep === i+1" [class.done]="currentStep > i+1">
+      <div class="wiz-circle" (click)="goToStep(i+1)">
+        <span *ngIf="currentStep > i+1">✓</span>
+        <span *ngIf="currentStep <= i+1">{{ i+1 }}</span>
+      </div>
+      <div class="wiz-label">{{ s }}</div>
+      <div class="wiz-line" *ngIf="i < steps.length - 1" [class.done]="currentStep > i+1"></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 1 ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 1">
+    <div class="section-card">
+      <div class="section-header">📦 Step 1 — Consignment Details</div>
+      <div class="section-body">
+        <div class="form-row-2">
+          <div class="form-group"><label>Consignment No <span class="required">*</span></label><input type="text" [(ngModel)]="form.consignment_no" placeholder="CNS000000"></div>
+          <div class="form-group"><label>Booking Date <span class="required">*</span></label><input type="datetime-local" [(ngModel)]="form.booking_date" [min]="today | date:'yyyy-MM-ddTHH:mm'"></div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group"><label>Customer</label>
+            <select [(ngModel)]="form.customer" [class.has-value]="form.customer" (change)="onCustomerChange()">
+              <option value="">-- Select Customer --</option>
+              <option *ngFor="let c of customers" [value]="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Service Type <span class="required">*</span></label>
+            <select [(ngModel)]="form.service_type" [class.has-value]="form.service_type">
+              <option value="">-- Select --</option>
+              <option value="standard">Standard</option>
+              <option value="express">Express</option>
+              <option value="overnight">Overnight</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Origin <span class="required">*</span></label>
+            <select [(ngModel)]="form.origin" [class.has-value]="form.origin">
+              <option value="">-- Select Origin State --</option>
+              <option *ngFor="let s of indianStates" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Destination <span class="required">*</span></label>
+            <select [(ngModel)]="form.destination" [class.has-value]="form.destination">
+              <option value="">-- Select Destination State --</option>
+              <option *ngFor="let s of indianStates" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <div></div>
+      <div class="wiz-actions-right">
+        <span class="wiz-counter">Step 1 of 6</span>
+        <button class="btn btn-primary" (click)="nextStep()">Next → Consignor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2 ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 2">
+    <div class="section-card">
+      <div class="section-header">👤 Step 2 — Consignor Details (Sender)</div>
+      <div class="section-body">
+        <!-- GSTIN row for consignor -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Consignor GSTIN <span style="font-size:11px;color:#94a3b8">(Optional)</span></label>
+            <input type="text" [(ngModel)]="form.consignor_gstin" placeholder="e.g. 29AABCT1332L1ZD" maxlength="15" style="text-transform:uppercase" />
+          </div>
+          <div class="form-group"></div>
+        </div>
+        <div class="autofill-banner" *ngIf="form.consignor_name">✅ Auto-filled from customer — edit if needed.</div>
+        <div class="form-row-2">
+          <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" [(ngModel)]="form.consignor_name" placeholder="Full name"></div>
+          <div class="form-group"><label>City <span class="required">*</span></label><input type="text" [(ngModel)]="form.consignor_city" placeholder="City"></div>
+        </div>
+        <div class="form-group"><label>Address</label><input type="text" [(ngModel)]="form.consignor_address" placeholder="Full address"></div>
+        <div class="form-row-3">
+          <div class="form-group"><label>Mobile</label><input type="text" [(ngModel)]="form.consignor_mobile" placeholder="10-digit mobile"></div>
+          <div class="form-group"><label>Pincode</label><input type="text" [(ngModel)]="form.consignor_pincode" placeholder="Pincode"></div>
+          <div class="form-group"><label>State</label>
+            <select [(ngModel)]="form.consignor_state" [class.has-value]="form.consignor_state">
+              <option value="">-- Select --</option>
+              <option *ngFor="let s of indianStates" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right"><span class="wiz-counter">Step 2 of 6</span><button class="btn btn-primary" (click)="nextStep()">Next → Consignee</button></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 3 ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 3">
+    <div class="section-card">
+      <div class="section-header">📍 Step 3 — Consignee Details (Receiver)</div>
+      <div class="section-body">
+        <div class="form-row-2">
+          <div class="form-group"><label>Name <span class="required">*</span></label><input type="text" [(ngModel)]="form.consignee_name" placeholder="Full name"></div>
+          <div class="form-group"><label>City <span class="required">*</span></label><input type="text" [(ngModel)]="form.consignee_city" placeholder="City"></div>
+        </div>
+        <div class="form-group"><label>Address</label><input type="text" [(ngModel)]="form.consignee_address" placeholder="Full address"></div>
+        <div class="form-row-2">
+          <div class="form-group"><label>Mobile</label><input type="text" [(ngModel)]="form.consignee_mobile" placeholder="10-digit mobile"></div>
+          <div class="form-group"><label>State</label>
+            <select [(ngModel)]="form.consignee_state" [class.has-value]="form.consignee_state">
+              <option value="">-- Select --</option>
+              <option *ngFor="let s of indianStates" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Consignee GSTIN <span style="font-size:11px;color:#94a3b8">(Optional)</span></label>
+            <input type="text" [(ngModel)]="form.consignee_gstin" placeholder="e.g. 29AABCT1332L1ZD" maxlength="15" style="text-transform:uppercase" />
+          </div>
+          <div class="form-group"></div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right"><span class="wiz-counter">Step 3 of 6</span><button class="btn btn-primary" (click)="nextStep()">Next → Shipment</button></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 4 ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 4">
+    <div class="section-card">
+      <div class="section-header">📦 Step 4 — Shipment Details</div>
+      <div class="section-body">
+        <div class="form-row-2">
+          <div class="form-group"><label>Total Pieces <span class="required">*</span></label><input type="number" [(ngModel)]="form.total_pieces" placeholder="0"></div>
+          <div class="form-group"><label>Actual Weight (kg) <span class="required">*</span></label><input type="number" [(ngModel)]="form.actual_weight" placeholder="0.00" (change)="calcChargeable()"></div>
+        </div>
+        <div class="vol-calc-box">
+          <div class="vol-calc-title">📐 Volumetric Weight Calculator</div>
+          <div class="form-row-3">
+            <div class="form-group"><label>Length (cm)</label><input type="number" [(ngModel)]="form.length" placeholder="0"></div>
+            <div class="form-group"><label>Width (cm)</label><input type="number" [(ngModel)]="form.width" placeholder="0"></div>
+            <div class="form-group"><label>Height (cm)</label><input type="number" [(ngModel)]="form.height" placeholder="0"></div>
+          </div>
+          <button class="btn btn-success" style="margin-top:4px" (click)="calcVolumetric()">Calculate Volumetric Weight</button>
+        </div>
+        <div class="form-row-2" style="margin-top:14px">
+          <div class="form-group"><label>Volumetric Weight (kg)</label><input type="number" [(ngModel)]="form.volumetric_weight" readonly placeholder="0.00"></div>
+          <div class="form-group"><label>Chargeable Weight (kg)</label><input type="number" [(ngModel)]="form.chargeable_weight" readonly placeholder="0.00" style="color:#6366f1;font-weight:700;background:#f0f0ff"></div>
+        </div>
+        <!-- Invoice value removed — enter on E-Way Bill page -->
+
+
+
+        <div class="form-row-1">
+          <div class="form-group">
+            <label>Product Category <span class="required">*</span></label>
+            <select [(ngModel)]="form.product_category" [class.has-value]="form.product_category" (change)="onCategoryChange()">
+              <option value="">-- Select Category --</option>
+              <option value="electronics">📱 Electronics</option>
+              <option value="clothing">👕 Clothing &amp; Textiles</option>
+              <option value="food">🍱 Food &amp; Perishables</option>
+              <option value="machinery">⚙️ Machinery &amp; Equipment</option>
+              <option value="furniture">🪑 Furniture</option>
+              <option value="pharma">💊 Pharma &amp; Medical</option>
+              <option value="auto_parts">🚗 Auto Parts</option>
+              <option value="books">📚 Books &amp; Stationery</option>
+              <option value="other">📦 Other</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Auto-filled HSN from category -->
+        <div class="form-row-2" *ngIf="form.hsn_code">
+          <div class="form-group">
+            <label>HSN Code <span style="font-size:11px;color:#6366f1;font-weight:600">(Auto-filled from category)</span></label>
+            <input type="text" [(ngModel)]="form.hsn_code" placeholder="e.g. 8471" />
+          </div>
+          <div class="form-group">
+            <label>Goods Description <span style="font-size:11px;color:#6366f1;font-weight:600">(Auto-filled)</span></label>
+            <input type="text" [(ngModel)]="form.goods_description" placeholder="Description of goods" />
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right"><span class="wiz-counter">Step 4 of 6</span><button class="btn btn-primary" (click)="nextStep()">Next → Billing</button></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 5 ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 5">
+    <div class="section-card">
+      <div class="section-header">💳 Step 5 — Billing Details</div>
+      <div class="section-body">
+        <div class="billing-info-box">
+          <div class="billing-info-title">💡 How billing works</div>
+          <div class="billing-info-text">Rate/kg → auto-calculates Freight. Add FSC + Other charges. Use <strong>CGST+SGST</strong> for same state, <strong>IGST</strong> for inter-state.</div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Payment Mode <span class="required">*</span></label>
+            <select [(ngModel)]="form.payment_mode" [class.has-value]="form.payment_mode">
+              <option value="credit">Credit — pay later</option>
+              <option value="cash">Cash — pay at booking</option>
+              <option value="online">Online — UPI/NEFT</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Rate Per kg (₹)</label>
+            <input type="number" [(ngModel)]="form.rate_per_kg" placeholder="e.g. 85" (change)="calcFreight()">
+          </div>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Freight Amount (₹)</label>
+            <input type="number" [(ngModel)]="form.freight_amt" readonly placeholder="0.00" style="background:#f0f0ff;color:#6366f1;font-weight:700">
+            <span class="field-hint">Auto: Rate × Chargeable weight</span>
+          </div>
+          <div class="form-group">
+            <label>FSC (₹) <span class="field-optional">Optional</span></label>
+            <input type="number" [(ngModel)]="form.fsc_amt" placeholder="0" (change)="calcTotal()">
+          </div>
+          <div class="form-group">
+            <label>Other Charges (₹) <span class="field-optional">Optional</span></label>
+            <input type="number" [(ngModel)]="form.other_charge" placeholder="0" (change)="calcTotal()">
+          </div>
+        </div>
+        <div class="gst-info-bar">🧾 Use <strong>CGST + SGST</strong> for same state &nbsp;|&nbsp; Use <strong>IGST</strong> for inter-state</div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>CGST (%) <span class="field-optional">Same state</span></label>
+            <input type="number" [(ngModel)]="form.cgst_pct" placeholder="0" min="0" max="100" step="0.5" (input)="calcTotal()">
+            <span class="field-hint" *ngIf="+form.cgst_pct > 0 && +form.igst_pct === 0">= ₹ {{ form.cgst }}</span>
+            <span class="gst-exclusive-hint" *ngIf="+form.igst_pct > 0">⚠ Cannot use with IGST</span>
+          </div>
+          <div class="form-group">
+            <label>SGST (%) <span class="field-optional">Same state</span></label>
+            <input type="number" [(ngModel)]="form.sgst_pct" placeholder="0" min="0" max="100" step="0.5" (input)="calcTotal()">
+            <span class="field-hint" *ngIf="+form.sgst_pct > 0 && +form.igst_pct === 0">= ₹ {{ form.sgst }}</span>
+            <span class="gst-exclusive-hint" *ngIf="+form.igst_pct > 0">⚠ Cannot use with IGST</span>
+          </div>
+          <div class="form-group">
+            <label>IGST (%) <span class="field-optional">Inter-state</span></label>
+            <input type="number" [(ngModel)]="form.igst_pct" placeholder="0" min="0" max="100" step="0.5" (input)="calcTotal()">
+            <span class="field-hint" *ngIf="+form.igst_pct > 0 && +form.cgst_pct === 0 && +form.sgst_pct === 0">= ₹ {{ form.igst }}</span>
+            <span class="gst-exclusive-hint" *ngIf="(+form.cgst_pct > 0 || +form.sgst_pct > 0)">⚠ Cannot use with CGST/SGST</span>
+          </div>
+        </div>
+        <div class="billing-summary">
+          <div class="billing-row"><span>Freight + FSC + Other</span><span>₹ {{ form.total_amt || '0.00' }}</span></div>
+          <div class="billing-row"><span>GST Total</span><span>₹ {{ ((+form.cgst) + (+form.sgst) + (+form.igst)).toFixed(2) || '0.00' }}</span></div>
+          <div class="billing-row net"><span>💰 Net Total</span><span>₹ {{ form.net_total_amt || '0.00' }}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right"><span class="wiz-counter">Step 5 of 6</span><button class="btn btn-primary" (click)="nextStep()">Next → Review</button></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 6 ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 6">
+    <div class="section-card">
+      <div class="section-header">ℹ️ Step 6 — Info & Review</div>
+      <div class="section-body">
+
+        <div class="form-row-3">
+          <div class="form-group"><label>Currency</label>
+            <select [(ngModel)]="form.invoice_currency"><option value="INR">INR</option><option value="USD">USD</option></select>
+          </div>
+          <div class="form-group"><label>Delivery Type</label>
+            <select [(ngModel)]="form.delivery_type"><option value="door_delivery">Door Delivery</option><option value="pickup">Pickup</option></select>
+          </div>
+          <div class="form-group"><label>Freight Charged By</label>
+            <select [(ngModel)]="form.freight_charge_by"><option value="consignor">Consignor</option><option value="consignee">Consignee</option></select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group"><label>DOC Type</label>
+            <select [(ngModel)]="form.doc_type"><option value="non_documents">Non Documents</option><option value="documents">Documents</option></select>
+          </div>
+          <div class="form-group"><label>Booked By</label><input type="text" value="admin" readonly style="color:#6366f1;font-weight:700;background:#f0f0ff"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Summary -->
+    <div class="review-card">
+      <div class="review-title">📋 Review Summary</div>
+      <div class="review-grid">
+        <div class="review-section">
+          <div class="review-section-title">📦 Consignment</div>
+          <div class="review-row"><span>No.</span><strong>{{ form.consignment_no }}</strong></div>
+          <div class="review-row"><span>Route</span><strong>{{ form.origin }} → {{ form.destination }}</strong></div>
+          <div class="review-row"><span>Service</span><strong>{{ form.service_type | titlecase }}</strong></div>
+          <div class="review-row"><span>Date</span><strong>{{ form.booking_date | date:'dd/MM/yyyy HH:mm' }}</strong></div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">👤 Consignor</div>
+          <div class="review-row"><span>Name</span><strong>{{ form.consignor_name || '-' }}</strong></div>
+          <div class="review-row"><span>City</span><strong>{{ form.consignor_city || '-' }}</strong></div>
+          <div class="review-row"><span>Mobile</span><strong>{{ form.consignor_mobile || '-' }}</strong></div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">📍 Consignee</div>
+          <div class="review-row"><span>Name</span><strong>{{ form.consignee_name || '-' }}</strong></div>
+          <div class="review-row"><span>City</span><strong>{{ form.consignee_city || '-' }}</strong></div>
+          <div class="review-row"><span>Mobile</span><strong>{{ form.consignee_mobile || '-' }}</strong></div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">📦 Shipment</div>
+          <div class="review-row"><span>Pieces</span><strong>{{ form.total_pieces || '0' }}</strong></div>
+          <div class="review-row"><span>Actual Weight</span><strong>{{ form.actual_weight || '0' }} kg</strong></div>
+          <div class="review-row"><span>Chargeable</span><strong>{{ form.chargeable_weight || '0' }} kg</strong></div>
+
+          <div class="review-row">
+            <span>EWB Status</span>
+            <strong>
+              <span *ngIf="form.ewaybill_no" style="color:#16a34a">✅ {{ form.ewaybill_no }}</span>
+              <span *ngIf="!form.ewaybill_no" style="color:#f97316">⚠️ Generate after save</span>
+            </strong>
+          </div>
+        </div>
+        <div class="review-section">
+          <div class="review-section-title">💳 Billing</div>
+          <div class="review-row"><span>Payment Mode</span><strong>{{ form.payment_mode | titlecase }}</strong></div>
+          <div class="review-row"><span>Freight</span><strong>₹ {{ form.freight_amt || '0.00' }}</strong></div>
+          <div class="review-row"><span>Total</span><strong>₹ {{ form.total_amt || '0.00' }}</strong></div>
+          <div class="review-row highlight"><span>Net Total</span><strong>₹ {{ form.net_total_amt || '0.00' }}</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EWB reminder at review if invoice >= 50k and no EWB yet -->
+    <div class="ewb-info-banner ewb-reminder" *ngIf="!form.ewaybill_no">
+      ℹ️ <strong>Reminder:</strong> After saving, go to <strong>E-Way Bill</strong> page to generate & link the EWB for this consignment.
+    </div>
+
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right">
+        <button class="btn btn-warning" (click)="clear()">🔄 Reset All</button>
+        <button class="btn btn-success" (click)="save()" [disabled]="loading">
+          <span *ngIf="loading" class="mini-spinner dark"></span>
+          {{ loading ? '⏳ Saving...' : '💾 Save Consignment' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,180 @@
+<!-- ── PAGE HEADER ── -->
+<div class="page-header">
+  <div>
+    <div class="header-eyebrow">Analytics</div>
+    <div class="header-title">Reports &amp; <span class="accent">Analytics</span></div>
+    <div class="header-sub">Consignment performance and e-way bill insights</div>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    LIVE DATA
+  </div>
+</div>
+
+<!-- ── FILTER CARD ── -->
+<div class="filter-card">
+  <div class="filter-top">
+    <div class="filter-label">📅 Filter Period</div>
+    <div class="active-range" *ngIf="filters.date_from && filters.date_to">
+      {{ filters.date_from }} → {{ filters.date_to }}
+    </div>
+  </div>
+
+  <div class="preset-chips">
+    <button
+      class="preset-chip"
+      *ngFor="let p of ['Today','Yesterday','Last 7 Days','Last 30 Days','This Month','Last Month','This Year','Custom']"
+      [class.active]="activePreset === p"
+      (click)="applyPreset(p)">
+      {{ p }}
+    </button>
+  </div>
+
+  <div class="custom-range" *ngIf="activePreset === 'Custom'">
+    <div class="custom-range-inner">
+      <div class="form-group">
+        <label>From Date</label>
+        <input type="date" [(ngModel)]="filters.date_from" (change)="onCustomDateChange()">
+      </div>
+      <div class="range-arrow">→</div>
+      <div class="form-group">
+        <label>To Date</label>
+        <input type="date" [(ngModel)]="filters.date_to" (change)="onCustomDateChange()">
+      </div>
+      <button class="btn-generate" (click)="loadReports()" [disabled]="loading">
+        {{ loading ? '⏳ Loading...' : '🔍 Generate Report' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOADING ── -->
+<div class="loading-wrap" *ngIf="loading">
+  <div class="loading-ring"></div>
+  <div class="loading-text">Loading report data...</div>
+</div>
+
+<!-- ── KPI CARDS ── -->
+<div class="kpi-grid" *ngIf="!loading && consignmentReport">
+  <div class="kpi-card blue">
+    <div class="kpi-top">
+      <div class="kpi-icon">📦</div>
+      <div class="kpi-tag">BOOKINGS</div>
+    </div>
+    <div class="kpi-value">{{ consignmentReport.total_consignments || 0 }}</div>
+    <div class="kpi-label">Total Consignments</div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-top">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-tag">REVENUE</div>
+    </div>
+    <div class="kpi-value">₹{{ (consignmentReport.total_revenue || 0) | number:'1.0-0' }}</div>
+    <div class="kpi-label">Total Revenue</div>
+  </div>
+
+  <div class="kpi-card cyan">
+    <div class="kpi-top">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-tag">E-WAY BILLS</div>
+    </div>
+    <div class="kpi-value">{{ ewaybillReport?.total || 0 }}</div>
+    <div class="kpi-label">Bills Generated</div>
+  </div>
+
+  <div class="kpi-card amber">
+    <div class="kpi-top">
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-tag">EXPIRING</div>
+    </div>
+    <div class="kpi-value">{{ ewaybillReport?.expiring_soon || 0 }}</div>
+    <div class="kpi-label">Expiring Soon</div>
+  </div>
+</div>
+
+<!-- ── SERVICE + PAYMENT ── -->
+<div class="bottom-grid" *ngIf="!loading && consignmentReport">
+
+  <div class="section-card">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-head-icon">📦</div>
+        By Service Type
+      </div>
+      <div class="section-count">{{ consignmentReport.total_consignments || 0 }} total</div>
+    </div>
+    <div class="section-body">
+      <div *ngIf="!consignmentReport.by_service_type?.length" class="no-data">No data available</div>
+      <div class="bar-row" *ngFor="let item of consignmentReport.by_service_type">
+        <div class="bar-meta">
+          <div class="bar-label">
+            {{ getServiceIcon(item.service_type) }} {{ item.service_type | titlecase }}
+          </div>
+          <div class="bar-count">{{ item.count }}</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill indigo"
+            [style.width.%]="consignmentReport.total_consignments
+              ? (item.count / consignmentReport.total_consignments) * 100 : 0">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-head-icon">💳</div>
+        By Payment Mode
+      </div>
+      <div class="section-count">{{ consignmentReport.total_consignments || 0 }} total</div>
+    </div>
+    <div class="section-body">
+      <div *ngIf="!consignmentReport.by_payment_mode?.length" class="no-data">No data available</div>
+      <div class="bar-row" *ngFor="let item of consignmentReport.by_payment_mode; let i = index">
+        <div class="bar-meta">
+          <div class="bar-label">
+            {{ getPaymentIcon(item.payment_mode) }} {{ item.payment_mode | titlecase }}
+          </div>
+          <div class="bar-count">{{ item.count }}</div>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill"
+            [class.emerald]="i === 0"
+            [class.cyan]="i === 1"
+            [class.amber]="i === 2"
+            [class.rose]="i >= 3"
+            [style.width.%]="consignmentReport.total_consignments
+              ? (item.count / consignmentReport.total_consignments) * 100 : 0">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── EWB STATUS ── -->
+<div class="ewb-card" *ngIf="!loading && ewaybillReport">
+  <div class="section-head">
+    <div class="section-head-left">
+      <div class="section-head-icon">📋</div>
+      E-Way Bill Status Breakdown
+    </div>
+    <div class="section-count">{{ ewaybillReport.total || 0 }} total</div>
+  </div>
+  <div class="ewb-status-grid">
+    <div class="ewb-status-item"
+      *ngFor="let item of ewaybillReport.by_status"
+      [class.s-active]="item.status === 'active'"
+      [class.s-cancelled]="item.status === 'cancelled'"
+      [class.s-expired]="item.status === 'expired'"
+      [class.s-delivered]="item.status === 'delivered'">
+      <div class="ewb-status-emoji">{{ getStatusIcon(item.status) }}</div>
+      <div class="ewb-status-num">{{ item.count }}</div>
+      <div class="ewb-status-label">{{ item.status | titlecase }}</div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,263 @@
+<!-- Page header -->
+      <div class="page-header">
+        <div class="page-title">
+          <div class="page-title-icon">🔑</div>
+          <div>
+            <h1>User Management</h1>
+            <p>Manage team accounts and role permissions</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" (click)="openAdd()">+ Add User</button>
+      </div>
+
+      <!-- Alerts -->
+      <div class="alert alert-success" *ngIf="successMsg">✅ {{ successMsg }}</div>
+      <div class="alert alert-danger"  *ngIf="errorMsg && !showModal && !showDeleteConfirm">⚠️ {{ errorMsg }}</div>
+
+      <!-- KPI Stats -->
+      <div class="stats-grid">
+        <div class="stat-card stat-total">
+          <div class="stat-icon">👥</div>
+          <div class="stat-val">{{ stats.total }}</div>
+          <div class="stat-lbl">Total Users</div>
+        </div>
+        <div class="stat-card stat-admin">
+          <div class="stat-icon">👑</div>
+          <div class="stat-val">{{ stats.admin }}</div>
+          <div class="stat-lbl">Admins</div>
+        </div>
+        <div class="stat-card stat-staff">
+          <div class="stat-icon">⚙️</div>
+          <div class="stat-val">{{ stats.staff }}</div>
+          <div class="stat-lbl">Staff</div>
+        </div>
+        <div class="stat-card stat-active">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val">{{ stats.active }}</div>
+          <div class="stat-lbl">Active</div>
+        </div>
+        <div class="stat-card stat-inactive">
+          <div class="stat-icon">⛔</div>
+          <div class="stat-val">{{ stats.inactive }}</div>
+          <div class="stat-lbl">Inactive</div>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="section-card">
+        <div class="filter-row">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" [(ngModel)]="searchText"
+              (ngModelChange)="applyFilter()"
+              placeholder="Search by name, email or mobile...">
+          </div>
+          <select [(ngModel)]="filterRole" (ngModelChange)="applyFilter()">
+            <option value="">All Roles</option>
+            <option value="admin">👑 Admin</option>
+            <option value="staff">⚙️ Staff</option>
+          </select>
+          <select [(ngModel)]="filterStatus" (ngModelChange)="applyFilter()">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <button class="btn btn-outline" *ngIf="searchText || filterRole || filterStatus"
+            (click)="searchText=''; filterRole=''; filterStatus=''; applyFilter()">
+            Clear ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="section-card" style="padding:0">
+        <div class="section-header">
+          <span>👥 Users List</span>
+          <span class="header-count">{{ filtered.length }} of {{ users.length }}</span>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-row" *ngIf="loading">
+          <div class="spinner"></div>
+          <span>Loading users...</span>
+        </div>
+
+        <!-- Table -->
+        <table *ngIf="!loading && filtered.length > 0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User</th>
+              <th>Email</th>
+              <th>Mobile</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of filtered; let i = index" [class.inactive-row]="!u.is_active">
+              <td class="td-num">{{ i + 1 }}</td>
+              <td>
+                <div class="user-cell">
+                  <div class="u-avatar" [ngClass]="'ua-' + u.role">
+                    {{ getInitials(u) }}
+                  </div>
+                  <div>
+                    <div class="u-name">{{ u.first_name }} {{ u.last_name }}</div>
+                    <div class="u-username">&#64;{{ u.username }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="td-muted">{{ u.email }}</td>
+              <td class="td-muted">{{ u.mobile || '—' }}</td>
+              <td>
+                <span class="role-badge" [ngClass]="'rb-' + u.role">
+                  {{ getRoleInfo(u.role).icon }} {{ getRoleInfo(u.role).label }}
+                </span>
+              </td>
+              <td>
+                <button class="status-btn"
+                  [class.status-on]="u.is_active"
+                  [class.status-off]="!u.is_active"
+                  (click)="toggleStatus(u)">
+                  {{ u.is_active ? '● Active' : '○ Inactive' }}
+                </button>
+              </td>
+              <td class="td-muted td-small">{{ u.date_joined || u.created_at | date:'dd MMM yyyy' }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="btn-icon edit" title="Edit" (click)="openEdit(u)">✏️</button>
+                  <button class="btn-icon delete" title="Delete" (click)="confirmDelete(u)">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Empty -->
+        <div class="empty-state" *ngIf="!loading && filtered.length === 0">
+          <div style="font-size:40px">👤</div>
+          <div>No users found</div>
+          <button class="btn btn-primary" (click)="openAdd()">Add First User</button>
+        </div>
+
+      </div>
+
+<!-- ══ ADD / EDIT MODAL ══ -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" style="max-width:600px" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>{{ isEdit ? '✏️ Edit User' : '➕ Add New User' }}</h3>
+      <span class="modal-close" (click)="closeModal()">✕</span>
+    </div>
+
+    <div class="modal-body">
+      <div class="alert alert-danger" *ngIf="errorMsg">{{ errorMsg }}</div>
+
+      <!-- Role selector -->
+      <div class="form-group" style="margin-bottom:18px">
+        <label>Role <span class="required">*</span></label>
+        <div class="role-cards">
+          <button type="button" class="role-card role-admin"
+            [class.selected]="form.role === 'admin'"
+            (click)="form.role = 'admin'">
+            <span style="font-size:28px">👑</span>
+            <span class="rc-label">Admin</span>
+            <span class="rc-desc">Full system access</span>
+            <span *ngIf="form.role==='admin'" style="font-size:11px;color:#6366f1;font-weight:700;margin-top:2px">✓ Selected</span>
+          </button>
+          <button type="button" class="role-card role-staff"
+            [class.selected]="form.role === 'staff'"
+            (click)="form.role = 'staff'">
+            <span style="font-size:28px">⚙️</span>
+            <span class="rc-label">Staff</span>
+            <span class="rc-desc">Operations only</span>
+            <span *ngIf="form.role==='staff'" style="font-size:11px;color:#f59e0b;font-weight:700;margin-top:2px">✓ Selected</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-grid col-2">
+        <div class="form-group">
+          <label>First Name <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="form.first_name" placeholder="Rajesh">
+        </div>
+        <div class="form-group">
+          <label>Last Name <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="form.last_name" placeholder="Kumar">
+        </div>
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input type="email" [(ngModel)]="form.email"
+            placeholder="rajesh@company.com" [disabled]="isEdit">
+          <span *ngIf="!isEdit" style="font-size:11px;color:#6366f1;margin-top:4px;display:block">
+            💡 Username will be auto-generated from email
+          </span>
+        </div>
+        <div class="form-group">
+          <label>Mobile</label>
+          <input type="text" [(ngModel)]="form.mobile" placeholder="9940346853">
+        </div>
+        <div class="form-group">
+          <label>
+            {{ isEdit ? 'New Password' : 'Password *' }}
+            <span class="optional" *ngIf="isEdit">(blank = keep current)</span>
+          </label>
+          <div class="eye-wrap">
+            <input [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="form.password" placeholder="Min. 6 characters">
+            <button type="button" (click)="showPassword = !showPassword">
+              {{ showPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <div class="eye-wrap">
+            <input [type]="showConfirmPassword ? 'text' : 'password'"
+              [(ngModel)]="form.confirm_password" placeholder="Repeat password">
+            <button type="button" (click)="showConfirmPassword = !showConfirmPassword">
+              {{ showConfirmPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active toggle -->
+      <div class="toggle-row">
+        <div class="toggle-track" [class.on]="form.is_active"
+          (click)="form.is_active = !form.is_active">
+          <div class="toggle-thumb"></div>
+        </div>
+        <span>{{ form.is_active ? 'Account Active' : 'Account Inactive' }}</span>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+        <span class="spinner-sm" *ngIf="saving"></span>
+        {{ saving ? 'Saving...' : (isEdit ? '💾 Update User' : '➕ Create User') }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DELETE CONFIRM ══ -->
+<div class="modal-overlay" *ngIf="showDeleteConfirm" (click)="cancelDelete()">
+  <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
+    <div style="font-size:48px;margin-bottom:12px">🗑️</div>
+    <h3 class="del-title">Delete User?</h3>
+    <p class="del-msg">
+      Are you sure you want to delete <strong>{{ deleteTargetName }}</strong>?
+      This action cannot be undone.
+    </p>
+    <div class="del-actions">
+      <button class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+      <button class="btn btn-danger" (click)="deleteUser()">Yes, Delete</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,269 @@
+<!-- Loading spinner -->
+<div class="loading-wrap" *ngIf="loading">
+  <div class="spinner"></div>
+  <span>Loading dashboard...</span>
+</div>
+
+<!-- Content -->
+<div *ngIf="!loading">
+
+  <!-- ══ WELCOME BANNER ══ -->
+  <div class="welcome-banner" [ngClass]="welcomeBannerClass">
+    <div class="wb-left">
+      <div class="wb-eyebrow">
+        <span class="wb-eyebrow-line"></span>
+        {{ isAdmin ? 'Administrator' : isStaff ? 'Staff' : 'Customer' }} Portal
+      </div>
+      <div class="wb-greeting">{{ greeting }},&nbsp;<span>{{ displayName }}</span>! {{ roleIcon }}</div>
+      <div class="wb-sub">{{ welcomeSubText }}</div>
+    </div>
+    <div class="wb-right">
+      <div class="wb-badge">
+        <span class="wb-badge-dot"></span>
+        System Live
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EXPIRY ALERT ══ -->
+  <div class="alert-bar" *ngIf="isAdminOrStaff && stats.expiring_soon > 0">
+    ⚠️ <strong>{{ stats.expiring_soon }}</strong> e-way bill(s) expiring within 24 hours.
+    <a routerLink="/portal/ewaybill" class="alert-link">Renew now →</a>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="kpi-section">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="st-dot"></span> Overview
+      </div>
+      <span class="section-badge">● LIVE</span>
+    </div>
+
+    <!-- Charts row (admin + staff) -->
+    <div class="charts-section" *ngIf="isAdminOrStaff">
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-title">📈 Revenue Trend</div>
+            <div class="chart-sub">LAST 6 MONTHS</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-title">📊 Service Type Split</div>
+            <div class="chart-sub">THIS MONTH</div>
+          </div>
+        </div>
+        <div class="chart-wrap" style="display:flex;align-items:center;justify-content:center">
+          <canvas id="consignmentChart" style="max-height:190px"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" [style.marginTop]="isAdminOrStaff ? '16px' : '0'">
+
+      <!-- Admin KPIs -->
+      <ng-container *ngIf="isAdmin">
+        <div class="kpi kpi-blue">
+          <div class="kpi-icon icon-blue">📦</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Total Consignments</div>
+            <div class="kpi-value">{{ stats.total_consignments }}</div>
+            <div class="kpi-trend">↑ {{ stats.today_bookings }} new today</div>
+          </div>
+        </div>
+        <div class="kpi kpi-teal">
+          <div class="kpi-icon icon-teal">🧾</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Active E-Way Bills</div>
+            <div class="kpi-value">{{ stats.active_ewaybills }}</div>
+            <div class="kpi-sub kpi-warn" *ngIf="stats.expiring_soon > 0">⚠ {{ stats.expiring_soon }} expiring soon</div>
+            <div class="kpi-sub" *ngIf="stats.expiring_soon === 0">All valid ✓</div>
+          </div>
+        </div>
+        <div class="kpi kpi-green">
+          <div class="kpi-icon icon-green">💰</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Monthly Revenue</div>
+            <div class="kpi-value">₹{{ stats.monthly_revenue | number:'1.0-0' }}</div>
+            <div class="kpi-sub">This month</div>
+          </div>
+        </div>
+        <div class="kpi kpi-orange">
+          <div class="kpi-icon icon-orange">👥</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Total Customers</div>
+            <div class="kpi-value">{{ stats.total_customers }}</div>
+            <div class="kpi-sub">{{ stats.total_vehicles }} vehicles in fleet</div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Staff KPIs -->
+      <ng-container *ngIf="isStaff">
+        <div class="kpi kpi-blue">
+          <div class="kpi-icon icon-blue">📦</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Total Consignments</div>
+            <div class="kpi-value">{{ stats.total_consignments }}</div>
+            <div class="kpi-trend">↑ {{ stats.today_bookings }} today</div>
+          </div>
+        </div>
+        <div class="kpi kpi-teal">
+          <div class="kpi-icon icon-teal">🧾</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Active E-Way Bills</div>
+            <div class="kpi-value">{{ stats.active_ewaybills }}</div>
+            <div class="kpi-sub kpi-warn" *ngIf="stats.expiring_soon > 0">⚠ {{ stats.expiring_soon }} expiring</div>
+            <div class="kpi-sub" *ngIf="stats.expiring_soon === 0">All valid ✓</div>
+          </div>
+        </div>
+        <div class="kpi kpi-orange">
+          <div class="kpi-icon icon-orange">👥</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Customers</div>
+            <div class="kpi-value">{{ stats.total_customers }}</div>
+            <div class="kpi-sub">Active accounts</div>
+          </div>
+        </div>
+        <div class="kpi kpi-purple">
+          <div class="kpi-icon icon-purple">🚛</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Vehicles</div>
+            <div class="kpi-value">{{ stats.total_vehicles }}</div>
+            <div class="kpi-sub">In fleet</div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Customer KPIs -->
+      <ng-container *ngIf="isCustomer">
+        <div class="kpi kpi-blue">
+          <div class="kpi-icon icon-blue">📦</div>
+          <div class="kpi-info">
+            <div class="kpi-label">Active Shipments</div>
+            <div class="kpi-value">{{ stats.active_ewaybills }}</div>
+            <div class="kpi-sub">In transit</div>
+          </div>
+        </div>
+        <div class="kpi kpi-teal">
+          <div class="kpi-icon icon-teal">🧾</div>
+          <div class="kpi-info">
+            <div class="kpi-label">E-Way Bills</div>
+            <div class="kpi-value">{{ stats.total_consignments }}</div>
+            <div class="kpi-sub">All time</div>
+          </div>
+        </div>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <!-- ══ QUICK ACTIONS (admin + staff) ══ -->
+  <div class="quick-actions" *ngIf="isAdminOrStaff">
+    <div class="section-header">
+      <div class="section-title">
+        <span class="st-dot" style="background:var(--green);box-shadow:0 0 0 3px var(--green-bg)"></span>
+        Quick Actions
+      </div>
+    </div>
+    <div class="qa-grid">
+      <a class="qa-card" routerLink="/portal/consignment">
+        <div class="qa-icon qi-blue">📦</div>
+        <span class="qa-label">New Consignment</span>
+      </a>
+      <a class="qa-card" routerLink="/portal/ewaybill">
+        <div class="qa-icon qi-teal">🧾</div>
+        <span class="qa-label">Generate EWB</span>
+      </a>
+      <a class="qa-card" routerLink="/portal/customers">
+        <div class="qa-icon qi-green">👤</div>
+        <span class="qa-label">Add Customer</span>
+      </a>
+      <a class="qa-card" routerLink="/portal/vehicles">
+        <div class="qa-icon qi-orange">🚛</div>
+        <span class="qa-label">Add Vehicle</span>
+      </a>
+      <a class="qa-card" routerLink="/portal/reports" *ngIf="isAdmin">
+        <div class="qa-icon qi-purple">📊</div>
+        <span class="qa-label">View Reports</span>
+      </a>
+      <a class="qa-card" routerLink="/portal/users" *ngIf="isAdmin">
+        <div class="qa-icon qi-red">🔑</div>
+        <span class="qa-label">Manage Users</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ══ CUSTOMER TRACK CTA ══ -->
+  <div class="track-cta" *ngIf="isCustomer">
+    <div class="tca-content">
+      <div class="tca-title">Track your shipment</div>
+      <div class="tca-sub">Enter your e-way bill number — no login required.</div>
+      <a routerLink="/track" class="tca-btn">Track Now →</a>
+    </div>
+    <div class="tca-icon">🗺️</div>
+  </div>
+
+  <!-- ══ RECENT CONSIGNMENTS TABLE ══ -->
+  <div class="table-card" *ngIf="isAdminOrStaff">
+    <div class="tc-header">
+      <div class="tc-header-title">
+        <span class="st-dot"></span>
+        Recent Consignments
+      </div>
+      <a class="tc-link" routerLink="/portal/consignment">View all →</a>
+    </div>
+
+    <div class="loading-row" *ngIf="loadingConsignments">Loading...</div>
+
+    <table class="data-table" *ngIf="!loadingConsignments && recentConsignments.length > 0">
+      <thead>
+        <tr>
+          <th>Consignment No.</th>
+          <th>Route</th>
+          <th>Consignor</th>
+          <th>Payment</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of recentConsignments">
+          <td class="td-mono">{{ c.consignment_no }}</td>
+          <td>{{ c.origin }} → {{ c.destination }}</td>
+          <td>{{ c.consignor_name }}</td>
+          <td>
+            <span class="badge"
+              [ngClass]="{
+                'badge-info':    c.payment_mode === 'credit',
+                'badge-success': c.payment_mode === 'online',
+                'badge-warning': c.payment_mode === 'cash'
+              }">
+              {{ c.payment_mode | titlecase }}
+            </span>
+          </td>
+          <td class="td-amount">₹{{ c.net_total_amt | number:'1.2-2' }}</td>
+          <td class="td-muted">{{ c.booking_date | date:'dd MMM yy' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="tc-footer" *ngIf="!loadingConsignments && recentConsignments.length > 0">
+      <a class="tc-footer-link" routerLink="/portal/consignment">View all consignments →</a>
+    </div>
+
+    <div class="empty-state" *ngIf="!loadingConsignments && recentConsignments.length === 0">
+      <div style="font-size:48px">📭</div>
+      <div>No consignments yet.</div>
+      <a routerLink="/portal/consignment">Create your first booking →</a>
+    </div>
+  </div>
+
+</div>

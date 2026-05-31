@@ -1,0 +1,9 @@
+<div class="layout-wrapper">
+  <app-sidebar (collapseChange)="onCollapseChange($event)"></app-sidebar>
+  <div class="layout-main" [class.sidebar-collapsed]="sidebarCollapsed">
+    <app-navbar [title]="pageTitle"></app-navbar>
+    <div class="layout-content">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

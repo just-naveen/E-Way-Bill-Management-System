@@ -1,0 +1,141 @@
+<div class="alert alert-success" *ngIf="successMsg">✅ {{ successMsg }}</div>
+<div class="alert alert-danger"  *ngIf="errorMsg">❌ {{ errorMsg }}</div>
+
+<div class="page-header">
+  <div class="page-title">
+    <div class="page-title-icon">🚛</div>
+    <div><h1>Vehicles</h1><p>Manage your fleet of vehicles</p></div>
+  </div>
+  <button class="btn btn-primary" (click)="openAdd()">+ Add Vehicle</button>
+</div>
+
+<div class="stats-row">
+  <div class="mini-stat">
+    <div class="mini-icon" style="background:#E6F1FB;color:#185FA5">🚛</div>
+    <div><div class="mini-val">{{ totalCount }}</div><div class="mini-label">Total Vehicles</div></div>
+  </div>
+  <div class="mini-stat">
+    <div class="mini-icon" style="background:#E1F5EE;color:#1D9E75">✅</div>
+    <div><div class="mini-val">{{ totalCount }}</div><div class="mini-label">Active Fleet</div></div>
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="section-header">🚛 Vehicle List</div>
+  <div class="table-toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" [(ngModel)]="searchText" (input)="search()" placeholder="Search by vehicle number or type...">
+    </div>
+    <button type="button" class="btn btn-outline" (click)="loadVehicles(1)">🔄 Refresh</button>
+  </div>
+
+  <div class="section-body" style="padding:0">
+    <div *ngIf="loading && vehicles.length === 0" class="loading-row">Loading vehicles...</div>
+
+    <table *ngIf="vehicles.length > 0">
+      <thead>
+        <tr><th>#</th><th>Vehicle Number</th><th>Vehicle Type</th><th>Transporter</th><th>Added On</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let v of filtered; let i = index">
+          <td>{{ i + 1 }}</td>
+          <td>
+            <div class="vehicle-cell">
+              <div class="vehicle-icon">🚛</div>
+              <strong>{{ v.vehicle_number }}</strong>
+            </div>
+          </td>
+          <td><span class="badge" [ngClass]="getTypeClass(v.vehicle_type)">{{ v.vehicle_type || '-' }}</span></td>
+          <td>{{ v.transporter_name || getTransporterName(v.transporter) || '-' }}</td>
+          <td>{{ v.created_at | date:'dd/MM/yyyy' }}</td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-icon edit" (click)="openEdit(v)">✏️</button>
+              <button class="btn-icon delete" (click)="delete(v.id)">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filtered.length === 0">
+          <td colspan="6">
+            <div class="empty-state">
+              <div style="font-size:40px">🚛</div>
+              <div>No vehicles found</div>
+              <button class="btn btn-primary" (click)="openAdd()">Add First Vehicle</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination Bar -->
+    <div class="pagination-bar">
+      <div class="pg-info">
+        Showing <span>{{ fromRecord }}</span>–<span>{{ toRecord }}</span>
+        of <span>{{ totalCount }}</span> records
+      </div>
+      <div class="pg-right">
+        <div class="pg-size-wrap">
+          Rows:
+          <!-- FIX: use (ngModelChange) to cast to number -->
+          <select [ngModel]="pageSize" (ngModelChange)="pageSize = +$event; onPageSizeChange()">
+            <option [value]="10">10</option>
+            <option [value]="15">15</option>
+            <option [value]="20">20</option>
+            <option [value]="25">25</option>
+          </select>
+        </div>
+        <div class="pg-controls">
+          <button class="pg-btn" [class.pg-disabled]="currentPage === 1" (click)="goToPage(1)">«</button>
+          <button class="pg-btn" [class.pg-disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">‹</button>
+          <ng-container *ngFor="let p of visiblePages; let i = index">
+            <span class="pg-ellipsis" *ngIf="i > 0 && visiblePages[i-1] !== p - 1">…</span>
+            <button class="pg-btn" [class.pg-active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+          </ng-container>
+          <button class="pg-btn" [class.pg-disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">›</button>
+          <button class="pg-btn" [class.pg-disabled]="currentPage === totalPages" (click)="goToPage(totalPages)">»</button>
+        </div>
+      </div><!-- FIX: was missing this closing </div> for pg-right -->
+    </div><!-- /pagination-bar -->
+  </div><!-- FIX: was missing this closing </div> for section-body -->
+
+</div><!-- /section-card -->
+
+<!-- Add / Edit Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ isEdit ? '✏️ Edit Vehicle' : '🚛 Add New Vehicle' }}</h3>
+      <span class="modal-close" (click)="closeModal()">✕</span>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-danger" *ngIf="errorMsg">{{ errorMsg }}</div>
+      <div class="form-grid col-2">
+        <div class="form-group">
+          <label>Vehicle Number <span class="required">*</span></label>
+          <input type="text" [(ngModel)]="form.vehicle_number" placeholder="e.g. TN01AB1234" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Vehicle Type</label>
+          <select [(ngModel)]="form.vehicle_type">
+            <option value="">-- Select Type --</option>
+            <option *ngFor="let t of vehicleTypes" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div class="form-group" style="grid-column:span 2">
+          <label>Transporter</label>
+          <select [(ngModel)]="form.transporter">
+            <option value="">-- Select Transporter --</option>
+            <option *ngFor="let t of transporters" [value]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+        {{ saving ? 'Saving...' : (isEdit ? 'Update Vehicle' : 'Add Vehicle') }}
+      </button>
+    </div>
+  </div>
+</div>

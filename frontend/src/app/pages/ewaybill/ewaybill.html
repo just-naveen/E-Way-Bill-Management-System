@@ -1,0 +1,470 @@
+<div class="alert alert-success" *ngIf="successMsg">✅ {{ successMsg }}</div>
+<div class="alert alert-danger"  *ngIf="errorMsg">❌ {{ errorMsg }}</div>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-title">
+    <div class="page-title-icon">📋</div>
+    <div><h1>E-Way Bill Generation</h1><p>Fill details step by step to generate a new e-way bill</p></div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <button class="btn btn-outline" (click)="toggleBulk()">{{ showBulk ? '📝 Single Bill' : '📤 Bulk Upload' }}</button>
+    <button class="btn btn-outline" (click)="viewTable()">{{ showTable ? '📝 New Bill' : '📋 View All' }}</button>
+  </div>
+</div>
+
+<!-- ══ TABLE VIEW ══ -->
+<div *ngIf="showTable" class="section-card">
+  <div class="section-header">📋 E-Way Bill List</div>
+  <div class="section-body" style="padding:0">
+    <!-- Skeleton Loader -->
+    <div *ngIf="tableLoading" class="skeleton-wrap">
+      <div class="skeleton-row" *ngFor="let i of [1,2,3,4,5]">
+        <div class="skeleton-cell w-8"></div>
+        <div class="skeleton-cell w-32"></div>
+        <div class="skeleton-cell w-24"></div>
+        <div class="skeleton-cell w-28"></div>
+        <div class="skeleton-cell w-16"></div>
+        <div class="skeleton-cell w-20"></div>
+        <div class="skeleton-cell w-20"></div>
+      </div>
+    </div>
+
+    <table *ngIf="!tableLoading">
+      <thead>
+        <tr>
+          <th>#</th><th>EWB Number</th><th>Consignment</th>
+          <th>Valid Upto</th><th>Distance</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let e of ewaybills; let i = index">
+          <td>{{ i+1 }}</td>
+          <td><strong class="ewb-mono">{{ e.ewb_number }}</strong></td>
+          <td>{{ e.consignment_no || '—' }}</td>
+          <td>{{ e.valid_upto | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ e.distance_km }} km</td>
+          <td><span class="badge" [ngClass]="getStatusClass(e.status)">{{ e.status | titlecase }}</span></td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-action btn-pdf" (click)="downloadPdf(e)" title="Download PDF">
+                <span *ngIf="downloadingId !== e.id">📄</span>
+                <span *ngIf="downloadingId === e.id" class="mini-spinner"></span>
+              </button>
+              <button class="btn-action btn-del" (click)="confirmDelete(e)" title="Delete">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="ewaybills.length === 0">
+          <td colspan="7">
+            <div class="empty-state">
+              <div style="font-size:36px">📋</div>
+              <div>No e-way bills found</div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ BULK UPLOAD PANEL ══ -->
+<div *ngIf="showBulk" class="section-card" style="padding:24px">
+  <app-bulk-ewb-upload (importDone)="onBulkImportDone($event)"></app-bulk-ewb-upload>
+</div>
+
+<!-- ══ WIZARD ══ -->
+<div *ngIf="!showTable && !showBulk">
+
+  <!-- Step Progress Bar -->
+  <div class="wiz-progress">
+    <div class="wiz-step" *ngFor="let s of steps; let i = index"
+         [class.active]="currentStep === i+1"
+         [class.done]="currentStep > i+1">
+      <div class="wiz-circle" (click)="goToStep(i+1)">
+        <span *ngIf="currentStep > i+1">✓</span>
+        <span *ngIf="currentStep <= i+1">{{ i+1 }}</span>
+      </div>
+      <div class="wiz-label">{{ s }}</div>
+      <div class="wiz-line" *ngIf="i < steps.length - 1" [class.done]="currentStep > i+1"></div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 1: EWB Details ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 1">
+    <div class="section-card">
+      <div class="section-header">📋 Step 1 — E-Way Bill Details</div>
+      <div class="section-body">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>EWB Number (Auto Generated — 12 digits)</label>
+            <input
+              type="text"
+              [(ngModel)]="form.ewb_number"
+              readonly
+              style="background:#eef2ff; color:#6366f1; font-weight:700; font-family: monospace; letter-spacing: 1.5px;">
+            <!-- FIX: Show digit count hint -->
+            <span class="field-hint">
+              {{ form.ewb_number?.length || 0 }}/12 digits
+              <span *ngIf="form.ewb_number?.length === 12" style="color:#16a34a"> ✓ Valid</span>
+              <span *ngIf="form.ewb_number?.length !== 12 && form.ewb_number?.length > 0" style="color:#dc2626"> ✗ Must be exactly 12 digits</span>
+            </span>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select [(ngModel)]="form.status" [class.has-value]="form.status">
+              <option value="active">Active</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="expired">Expired</option>
+              <option value="delivered">Delivered</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Linked Consignment</label>
+          <select [(ngModel)]="form.consignment" [class.has-value]="form.consignment" (change)="onConsignmentChange()">
+            <option [ngValue]="null">-- Select Consignment (Optional) --</option>
+            <option *ngFor="let c of consignments" [ngValue]="c.id">
+              {{ c.consignment_no }} | {{ c.origin }} → {{ c.destination }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Valid Upto <span class="required">*</span></label>
+            <input type="datetime-local" [(ngModel)]="form.valid_upto">
+            <span class="field-hint">Must be a future date/time</span>
+          </div>
+          <div class="form-group" *ngIf="form.distance_km">
+            <label>Calculated Validity</label>
+            <div class="validity-badge" style="margin-top:8px">
+              📅 {{ getValidityDaysLabel(form.distance_km) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <div></div>
+      <div class="wiz-actions-right">
+        <span class="wiz-counter">Step 1 of 4</span>
+        <button class="btn btn-primary" (click)="nextStep()">Next → Goods Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 2: Goods Details ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 2">
+    <div class="section-card">
+      <div class="section-header">📦 Step 2 — Goods Details</div>
+      <div class="section-body">
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>HSN Code <span class="required">*</span></label>
+            <input type="text" [(ngModel)]="form.hsn_code" placeholder="e.g. 8471" (input)="onHsnChange()" (blur)="onHsnChange()">
+            <span class="field-hint" *ngIf="form.hsn_code && getGstRate(form.hsn_code) !== null" style="color:#16a34a;font-weight:600">
+              ✅ GST {{ getGstRate(form.hsn_code) }}% auto-filled
+            </span>
+            <span class="field-hint" *ngIf="form.hsn_code && getGstRate(form.hsn_code) === null" style="color:#f97316">
+              ⚠️ HSN not found — enter GST rate manually
+            </span>
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select [(ngModel)]="form.unit" [class.has-value]="form.unit">
+              <option [ngValue]="''">-- Select Unit --</option>
+              <option value="KGS">KGS</option>
+              <option value="NOS">NOS</option>
+              <option value="MTR">MTR</option>
+              <option value="LTR">LTR</option>
+              <option value="BOX">BOX</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Goods Description</label>
+          <input type="text" [(ngModel)]="form.goods_description" placeholder="Description of goods being transported">
+        </div>
+
+        <!-- Taxable value calculator -->
+        <div class="vol-calc-box">
+          <div class="vol-calc-title">💰 Taxable Value Calculator</div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Quantity</label>
+              <input type="number" min="0" [(ngModel)]="form.quantity" placeholder="0" (input)="calcTaxableValue()">
+            </div>
+            <div class="form-group">
+              <label>Rate Per Unit (₹)</label>
+              <input type="number" min="0" [(ngModel)]="form.unit_rate" placeholder="0.00" (input)="calcTaxableValue()">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top:14px">
+          <label>Taxable Value (₹) <span class="required">*</span></label>
+          <input type="number" min="0" [(ngModel)]="form.taxable_value" placeholder="0.00"
+                 style="color:#6366f1;font-weight:700;background:#f0f0ff">
+          <!-- FIX: Below ₹50,000 warning (not a hard block — exemptions exist) -->
+          <div class="ewb-alert ewb-required" *ngIf="taxableValueBelowThreshold">
+            ⚠️ <strong>Note:</strong> Taxable value ₹{{ form.taxable_value | number }} is below ₹50,000.
+            Under GST law, an E-Way Bill is <strong>generally not required</strong> below this threshold.
+            Proceed only if a specific exemption or state rule applies.
+          </div>
+          <div class="ewb-alert ewb-ok" *ngIf="+form.taxable_value >= 50000">
+            ✅ Taxable value ₹{{ form.taxable_value | number }} meets the ₹50,000 EWB threshold.
+          </div>
+        </div>
+
+        <!-- FIX: GST mutual exclusion info bar -->
+        <div class="gst-info-bar">
+          🧾 Use <strong>CGST + SGST</strong> for same-state transport &nbsp;|&nbsp;
+          Use <strong>IGST</strong> for inter-state transport. <strong>Do not use both.</strong>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>CGST Rate (%)</label>
+            <input type="number" min="0" max="28" [(ngModel)]="form.cgst_rate" placeholder="0"
+                   [style.border-color]="gstConflict ? '#ef4444' : ''">
+            <span class="gst-exclusive-hint" *ngIf="+form.igst_rate > 0">⚠ Cannot use with IGST</span>
+          </div>
+          <div class="form-group">
+            <label>SGST Rate (%)</label>
+            <input type="number" min="0" max="28" [(ngModel)]="form.sgst_rate" placeholder="0"
+                   [style.border-color]="gstConflict ? '#ef4444' : ''">
+            <span class="gst-exclusive-hint" *ngIf="+form.igst_rate > 0">⚠ Cannot use with IGST</span>
+          </div>
+          <div class="form-group">
+            <label>IGST Rate (%)</label>
+            <input type="number" min="0" max="28" [(ngModel)]="form.igst_rate" placeholder="0"
+                   [style.border-color]="gstConflict ? '#ef4444' : ''">
+            <span class="gst-exclusive-hint" *ngIf="+form.cgst_rate > 0 || +form.sgst_rate > 0">⚠ Cannot use with CGST/SGST</span>
+          </div>
+        </div>
+
+        <!-- FIX: Show live GST conflict error inline -->
+        <div class="wiz-error" *ngIf="gstConflict">
+          ⚠️ GST Conflict: CGST/SGST and IGST cannot be used together.
+          Clear one set before continuing.
+        </div>
+
+        <!-- Tax summary -->
+        <div class="billing-summary" *ngIf="+form.taxable_value > 0">
+          <div class="billing-row"><span>Taxable Value</span><span>₹ {{ form.taxable_value }}</span></div>
+          <div class="billing-row" *ngIf="+form.cgst_rate > 0">
+            <span>CGST ({{ form.cgst_rate }}%)</span>
+            <span>₹ {{ calcTaxAmount(form.taxable_value, form.cgst_rate) }}</span>
+          </div>
+          <div class="billing-row" *ngIf="+form.sgst_rate > 0">
+            <span>SGST ({{ form.sgst_rate }}%)</span>
+            <span>₹ {{ calcTaxAmount(form.taxable_value, form.sgst_rate) }}</span>
+          </div>
+          <div class="billing-row" *ngIf="+form.igst_rate > 0">
+            <span>IGST ({{ form.igst_rate }}%)</span>
+            <span>₹ {{ calcTaxAmount(form.taxable_value, form.igst_rate) }}</span>
+          </div>
+          <div class="billing-row net"><span>Total Invoice Value</span><span>₹ {{ calcTotalValue() }}</span></div>
+        </div>
+
+      </div>
+    </div>
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right">
+        <span class="wiz-counter">Step 2 of 4</span>
+        <button class="btn btn-primary" (click)="nextStep()">Next → Transport</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 3: Transport Details ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 3">
+    <div class="two-col-grid">
+      <div class="section-card">
+        <div class="section-header">🚛 Step 3 — Transport Details</div>
+        <div class="section-body">
+
+          <!-- FIX: Loading guards for dropdown data -->
+          <div *ngIf="loadingTransporters || loadingVehicles" class="skeleton-wrap">
+            <div class="skeleton-row"><div class="skeleton-cell w-32"></div></div>
+            <div class="skeleton-row"><div class="skeleton-cell w-32"></div></div>
+          </div>
+
+          <ng-container *ngIf="!loadingTransporters && !loadingVehicles">
+            <div class="form-group">
+              <label>Transporter <span class="required">*</span></label>
+              <select [(ngModel)]="form.transporter" [class.has-value]="form.transporter">
+                <option [ngValue]="null">-- Select Transporter --</option>
+                <option *ngFor="let t of transporters" [ngValue]="t.id">{{ t.name }}</option>
+              </select>
+              <span class="field-hint" *ngIf="transporters.length === 0">
+                No transporters found. <a routerLink="/portal/transporters">Add one first →</a>
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label>Vehicle <span class="required">*</span></label>
+              <select [(ngModel)]="form.vehicle" [class.has-value]="form.vehicle">
+                <option [ngValue]="null">-- Select Vehicle --</option>
+                <option *ngFor="let v of vehicles" [ngValue]="v.id">
+                  {{ v.vehicle_number }} — {{ v.vehicle_type }}
+                </option>
+              </select>
+              <span class="field-hint" *ngIf="vehicles.length === 0">
+                No vehicles found. <a routerLink="/portal/vehicles">Add one first →</a>
+              </span>
+            </div>
+          </ng-container>
+
+          <div class="form-group">
+            <label>Distance (KM) <span class="required">*</span></label>
+            <input type="number" min="1" [(ngModel)]="form.distance_km"
+                   placeholder="Enter distance in km" (change)="onDistanceChange()">
+            <span class="field-hint">Validity period auto-calculates from distance</span>
+          </div>
+
+          <div class="validity-badge" *ngIf="+form.distance_km > 0" style="margin-top:4px">
+            📅 Validity Period: <strong>{{ getValidityDaysLabel(+form.distance_km) }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validity Reference Card -->
+      <div class="section-card">
+        <div class="section-header">📅 GST Validity Reference</div>
+        <div class="section-body">
+          <div class="validity-table">
+            <!-- FIX: Corrected boundary labels (strict < used in code) -->
+            <div class="validity-row" [class.highlight]="+form.distance_km > 0 && +form.distance_km < 100">
+              <span class="vd-range">Less than 100 km</span>
+              <span class="vd-days">1 Day</span>
+            </div>
+            <div class="validity-row" [class.highlight]="+form.distance_km >= 100 && +form.distance_km < 300">
+              <span class="vd-range">100 km to less than 300 km</span>
+              <span class="vd-days">3 Days</span>
+            </div>
+            <div class="validity-row" [class.highlight]="+form.distance_km >= 300 && +form.distance_km < 500">
+              <span class="vd-range">300 km to less than 500 km</span>
+              <span class="vd-days">5 Days</span>
+            </div>
+            <div class="validity-row" [class.highlight]="+form.distance_km >= 500 && +form.distance_km < 1000">
+              <span class="vd-range">500 km to less than 1000 km</span>
+              <span class="vd-days">10 Days</span>
+            </div>
+            <div class="validity-row" [class.highlight]="+form.distance_km >= 1000">
+              <span class="vd-range">1000 km or more</span>
+              <span class="vd-days">15 Days</span>
+            </div>
+          </div>
+          <div style="margin-top:14px; font-size:11.5px; color:#64748b; line-height:1.6;">
+            As per GST Notification 12/2018-Central Tax. Validity starts from the time of EWB generation.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right">
+        <span class="wiz-counter">Step 3 of 4</span>
+        <button class="btn btn-primary" (click)="nextStep()">Next → Review</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ STEP 4: Review & Generate ══ -->
+  <div class="wiz-panel" *ngIf="currentStep === 4">
+
+    <div class="review-card">
+      <div class="review-title">📋 Review Summary — Confirm Before Generating</div>
+      <div class="review-grid">
+
+        <div class="review-section">
+          <div class="review-section-title">📋 EWB Details</div>
+          <div class="review-row"><span>EWB Number</span>
+            <strong style="font-family:monospace">{{ form.ewb_number }}</strong>
+          </div>
+          <div class="review-row"><span>Status</span><strong>{{ form.status | titlecase }}</strong></div>
+          <div class="review-row"><span>Valid Upto</span>
+            <strong>{{ form.valid_upto | date:'dd/MM/yyyy HH:mm' }}</strong>
+          </div>
+          <div class="review-row"><span>Linked Consignment</span>
+            <strong>{{ getConsignmentNo(form.consignment) || 'None' }}</strong>
+          </div>
+        </div>
+
+        <div class="review-section">
+          <div class="review-section-title">📦 Goods Details</div>
+          <div class="review-row"><span>HSN Code</span><strong>{{ form.hsn_code || '-' }}</strong></div>
+          <div class="review-row"><span>Description</span><strong>{{ form.goods_description || '-' }}</strong></div>
+          <div class="review-row"><span>Quantity</span><strong>{{ form.quantity || '0' }} {{ form.unit }}</strong></div>
+          <div class="review-row"><span>Taxable Value</span><strong>₹ {{ form.taxable_value || '0' }}</strong></div>
+          <div class="review-row">
+            <span>CGST / SGST / IGST</span>
+            <strong>{{ form.cgst_rate || 0 }}% / {{ form.sgst_rate || 0 }}% / {{ form.igst_rate || 0 }}%</strong>
+          </div>
+          <div class="review-row highlight"><span>Total Value</span><strong>₹ {{ calcTotalValue() }}</strong></div>
+        </div>
+
+        <div class="review-section">
+          <div class="review-section-title">🚛 Transport Details</div>
+          <div class="review-row"><span>Transporter</span><strong>{{ getTransporterName(form.transporter) || '-' }}</strong></div>
+          <div class="review-row"><span>Vehicle</span><strong>{{ getVehicleNo(form.vehicle) || '-' }}</strong></div>
+          <div class="review-row"><span>Distance</span><strong>{{ form.distance_km || '0' }} km</strong></div>
+          <div class="review-row highlight">
+            <span>Validity Period</span>
+            <strong>{{ form.distance_km ? getValidityDaysLabel(+form.distance_km) : '-' }}</strong>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Final warnings on review -->
+    <div class="ewb-alert ewb-required" *ngIf="taxableValueBelowThreshold" style="margin-bottom:12px">
+      ⚠️ Reminder: Taxable value ₹{{ form.taxable_value | number }} is below ₹50,000 threshold.
+      EWB may not be required under GST law. Proceed only if a specific exemption applies.
+    </div>
+
+    <div class="wiz-error" *ngIf="stepError">⚠️ {{ stepError }}</div>
+    <div class="wiz-actions">
+      <button class="btn btn-secondary" (click)="prevStep()">← Previous</button>
+      <div class="wiz-actions-right">
+        <button class="btn btn-warning" (click)="clear()">🔄 Reset All</button>
+        <button class="btn btn-success" (click)="save()" [disabled]="loading">
+          <span *ngIf="loading" class="mini-spinner dark"></span>
+          {{ loading ? '⏳ Generating...' : '📋 Generate E-Way Bill' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Confirm Delete Dialog ── -->
+<div class="confirm-overlay" *ngIf="showConfirm" (click)="cancelDelete()">
+  <div class="confirm-box" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Delete E-Way Bill?</div>
+    <div class="confirm-msg">
+      Are you sure you want to delete EWB
+      <strong>{{ deleteTarget?.ewb_number }}</strong>?
+      This action cannot be undone.
+    </div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+      <button class="btn btn-danger" (click)="deleteConfirmed()" [disabled]="deleting">
+        <span *ngIf="deleting" class="mini-spinner dark"></span>
+        {{ deleting ? 'Deleting...' : 'Yes, Delete' }}
+      </button>
+    </div>
+  </div>
+</div>

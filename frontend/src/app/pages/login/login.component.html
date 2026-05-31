@@ -1,0 +1,142 @@
+<div class="login-page">
+  <div class="login-card">
+
+    <!-- ══ LEFT PANEL ══ -->
+    <div class="card-left">
+      <div class="cl-top">
+
+        <!-- Brand -->
+        <div class="cl-brand">
+          <div class="cl-logo">🚚</div>
+          <span class="cl-brand-name">WayBill<b>Pro</b></span>
+        </div>
+
+        <!-- Headline -->
+        <h2 class="cl-headline">
+          India's Smartest<br>
+          <span>E-Way Bill</span><br>
+          Platform
+        </h2>
+
+        <p class="cl-desc">
+          Trusted by 8,400+ logistics businesses for fast, compliant,
+          and effortless e-way bill management.
+        </p>
+
+        <!-- Features -->
+        <div class="cl-features">
+          <div class="cl-feature">
+            <div class="cf-icon">🧾</div>
+            <span class="cf-text">Instant E-Way Bill generation via NIC portal</span>
+          </div>
+          <div class="cl-feature">
+            <div class="cf-icon">🚛</div>
+            <span class="cf-text">Real-time shipment tracking with live map</span>
+          </div>
+          <div class="cl-feature">
+            <div class="cf-icon">📊</div>
+            <span class="cf-text">GST-ready compliance reports in one click</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Stats -->
+      <div class="cl-bottom">
+        <div class="cl-stats">
+          <div>
+            <div class="cl-stat-num">1.2M+</div>
+            <div class="cl-stat-label">Bills Generated</div>
+          </div>
+          <div>
+            <div class="cl-stat-num">8,400+</div>
+            <div class="cl-stat-label">Businesses</div>
+          </div>
+          <div>
+            <div class="cl-stat-num">99.9%</div>
+            <div class="cl-stat-label">Uptime</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ RIGHT PANEL ══ -->
+    <div class="card-right">
+
+      <div class="cr-header">
+        <div class="cr-eyebrow">Secure Login</div>
+        <h2 class="cr-title">Welcome back</h2>
+        <p class="cr-sub">Sign in to your WayBillPro account to continue.</p>
+      </div>
+
+      <!-- Error -->
+      <div class="error-box" *ngIf="error">
+        <span class="error-icon">⚠️</span>
+        <span>{{ error }}</span>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <span class="field-icon">✉️</span>
+          <input
+            type="email"
+            [(ngModel)]="email"
+            (input)="clearError()"
+            placeholder="you@company.com"
+            autocomplete="email" />
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="field-icon">🔒</span>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            [(ngModel)]="password"
+            (input)="clearError()"
+            placeholder="Enter your password"
+            autocomplete="current-password" />
+          <button class="eye" type="button" (click)="togglePassword()">
+            {{ showPassword ? '🙈' : '👁️' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Remember + Forgot -->
+      <div class="form-footer">
+        <label class="remember">
+          <input type="checkbox" [(ngModel)]="remember" />
+          <span>Remember me</span>
+        </label>
+      </div>
+
+      <!-- Login Button -->
+      <button
+        class="login-btn"
+        (click)="login()"
+        [disabled]="loading">
+        <div class="btn-spinner" *ngIf="loading"></div>
+        <span>{{ loading ? 'Signing in...' : 'Sign In' }}</span>
+        <span *ngIf="!loading">→</span>
+      </button>
+
+      <!-- Divider -->
+      <div class="divider">
+        <div class="divider-line"></div>
+        <span class="divider-text">or</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Track without login -->
+      <a class="track-link" routerLink="/track">
+        <span class="track-link-icon">📦</span>
+        Track a shipment without logging in
+      </a>
+
+    </div>
+  </div>
+</div>

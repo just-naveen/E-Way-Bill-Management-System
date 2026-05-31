@@ -1,0 +1,361 @@
+<!-- ══ PUBLIC NAV (home-page style) ══ -->
+<nav class="pub-nav">
+  <div class="pub-nav-inner">
+    <a class="nav-brand" routerLink="/">
+      <div class="nav-logo">🚚</div>
+      <span class="nav-name">WayBill<b>Pro</b></span>
+    </a>
+    <div class="pub-nav-actions">
+      <button class="btn-nav-outline" routerLink="/login">Login</button>
+      <button class="btn-nav-solid"   routerLink="/login">Get Started</button>
+    </div>
+  </div>
+</nav>
+
+<div class="track-page">
+
+  <!-- ══ HERO SEARCH ══ -->
+  <div class="track-hero">
+    <div class="hero-mesh"></div>
+    <div class="hero-grid"></div>
+
+    <div class="track-inner">
+      <a class="back-link" routerLink="/">← Back to home</a>
+
+      <div class="track-badge">
+        <span class="badge-dot"></span>
+        Live E-Way Bill Tracker
+      </div>
+
+      <h1>Track Your<br><span class="h1-accent">E-Way Bill</span></h1>
+      <p>Enter your EWB number to get instant status and shipment journey — no login needed.</p>
+
+      <div class="search-wrap">
+        <div class="search-box" [class.focused]="focused">
+          <span class="sb-icon">🧾</span>
+          <input
+            [(ngModel)]="ewbNo"
+            placeholder="Enter E-Way Bill Number (e.g. 1234567890)"
+            (keyup.enter)="search()"
+            (focus)="focused=true"
+            (blur)="focused=false"
+            autocomplete="off"
+            maxlength="12" />
+          <button class="sb-clear" *ngIf="ewbNo" (click)="clear()">✕</button>
+        </div>
+        <button class="track-btn" (click)="search()" [disabled]="loading || !ewbNo.trim()">
+          <span *ngIf="loading" class="spinner"></span>
+          <span *ngIf="!loading">Track Now →</span>
+          <span *ngIf="loading">Searching...</span>
+        </button>
+      </div>
+
+      <!-- Demo pills -->
+      <div class="demo-pills">
+        <div class="demo-pill dp-active" (click)="ewbNo='1234567890'; search()">
+          <span class="dp-status"></span>1234567890
+        </div>
+        <div class="demo-pill dp-delivered" (click)="ewbNo='9981234567'; search()">
+          <span class="dp-status"></span>9981234567
+        </div>
+        <div class="demo-pill dp-expiring" (click)="ewbNo='2345678901'; search()">
+          <span class="dp-status"></span>2345678901
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESULT ══ -->
+  <div class="result-section" *ngIf="result">
+
+    <!-- ── EWB SUMMARY CARD ── -->
+    <div class="result-card">
+
+      <!-- Header -->
+      <div class="rc-header">
+        <div class="rc-header-left">
+          <div class="rc-label">E-Way Bill Number</div>
+          <div class="rc-ewb">{{ result.ewb_number }}</div>
+          <div class="rc-cns" *ngIf="result.consignment_no">
+            Linked consignment: <strong>{{ result.consignment_no }}</strong>
+          </div>
+        </div>
+        <div class="status-pill" [ngClass]="result.statusClass">
+          {{ result.statusIcon }} &nbsp;{{ result.statusLabel }}
+        </div>
+      </div>
+
+      <!-- Route Bar -->
+      <div class="route-card">
+        <div class="route-point">
+          <div class="rp-icon origin">🏭</div>
+          <div>
+            <div class="rp-label">Origin</div>
+            <div class="rp-value">{{ result.origin }}</div>
+          </div>
+        </div>
+
+        <div class="route-line">
+          <div class="rl-label">{{ result.distance_km ? result.distance_km + ' km' : '— km' }}</div>
+          <div class="rl-track">
+            <div class="rl-fill" [ngClass]="result.statusClass"></div>
+          </div>
+          <div class="rl-dots">
+            <div class="rl-dot" [class.active]="result.status === 'active'"></div>
+            <div class="rl-dot" [class.active]="result.status === 'active'"></div>
+            <div class="rl-dot" [class.active]="result.status === 'active'"></div>
+          </div>
+        </div>
+
+        <div class="route-point">
+          <div class="rp-icon dest">📦</div>
+          <div>
+            <div class="rp-label">Destination</div>
+            <div class="rp-value">{{ result.destination }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Grid -->
+      <div class="info-grid">
+        <div class="info-card">
+          <div class="ic-ico">📅</div>
+          <div class="ic-body">
+            <div class="ic-label">Valid Until</div>
+            <div class="ic-value" [class.ic-expired]="result.isExpired">
+              {{ result.valid_upto | date:'dd MMM yyyy, hh:mm a' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card" *ngIf="!result.isExpired && result.hoursLeft !== null">
+          <div class="ic-ico">⏱️</div>
+          <div class="ic-body">
+            <div class="ic-label">Time Remaining</div>
+            <div class="ic-value"
+              [class.ic-warning]="result.hoursLeft < 24"
+              [class.ic-ok]="result.hoursLeft >= 24">
+              <ng-container *ngIf="result.hoursLeft >= 24">{{ (result.hoursLeft / 24) | number:'1.0-0' }} day(s)</ng-container>
+              <ng-container *ngIf="result.hoursLeft < 24 && result.hoursLeft > 0">⚠️ {{ result.hoursLeft }}h left</ng-container>
+              <ng-container *ngIf="result.hoursLeft === 0">Expired now</ng-container>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card" *ngIf="result.isExpired">
+          <div class="ic-ico">⚠️</div>
+          <div class="ic-body">
+            <div class="ic-label">Validity</div>
+            <div class="ic-value ic-expired">EWB has expired</div>
+          </div>
+        </div>
+
+        <div class="info-card" *ngIf="result.distance_km">
+          <div class="ic-ico">📍</div>
+          <div class="ic-body">
+            <div class="ic-label">Total Distance</div>
+            <div class="ic-value">{{ result.distance_km }} km</div>
+          </div>
+        </div>
+
+        <div class="info-card" *ngIf="result.timeline?.length">
+          <div class="ic-ico">🔄</div>
+          <div class="ic-body">
+            <div class="ic-label">Last Update</div>
+            <div class="ic-value">{{ result.timeline[0].timestamp | date:'dd MMM, hh:mm a' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Alerts -->
+      <div class="status-note status-note-warning"
+        *ngIf="result.status === 'active' && result.hoursLeft !== null && result.hoursLeft < 24">
+        ⚠️ This EWB expires in less than 24 hours — please renew before continuing transport.
+      </div>
+      <div class="status-note status-note-danger" *ngIf="result.status === 'expired'">
+        ❌ This EWB has expired. Goods cannot be transported legally. Generate a new one immediately.
+      </div>
+      <div class="status-note status-note-danger" *ngIf="result.status === 'cancelled'">
+        ❌ This EWB has been cancelled and is no longer valid for transport.
+      </div>
+      <div class="status-note status-note-success" *ngIf="result.status === 'delivered'">
+        ✅ Shipment delivered successfully. No further action required.
+      </div>
+
+      <!-- Footer -->
+      <div class="rc-footer">
+        <button class="btn-search-again" (click)="clear()">🔍 Track Another EWB</button>
+        <a class="btn-login-link" routerLink="/login">Login to manage bills →</a>
+      </div>
+    </div>
+
+    <!-- ══ GOODS DETAILS CARD ══ -->
+    <div class="goods-card" *ngIf="result.goods">
+      <div class="section-header">
+        <span class="section-icon">📦</span>
+        <span class="section-title">Goods Details</span>
+      </div>
+
+      <div class="goods-grid">
+        <div class="goods-field">
+          <div class="gf-label">HSN Code</div>
+          <div class="gf-value gf-mono">{{ result.goods.hsn_code }}</div>
+        </div>
+        <div class="goods-field goods-field-wide">
+          <div class="gf-label">Description of Goods</div>
+          <div class="gf-value">{{ result.goods.goods_description }}</div>
+        </div>
+        <div class="goods-field" *ngIf="result.goods.quantity !== null">
+          <div class="gf-label">Quantity</div>
+          <div class="gf-value">{{ result.goods.quantity }} <span class="gf-unit">{{ result.goods.unit }}</span></div>
+        </div>
+        <div class="goods-field" *ngIf="result.goods.taxable_value !== null">
+          <div class="gf-label">Taxable Value</div>
+          <div class="gf-value gf-amount">₹{{ result.goods.taxable_value | number:'1.2-2' }}</div>
+        </div>
+      </div>
+
+      <!-- Tax breakdown -->
+      <div class="tax-row" *ngIf="result.goods.taxable_value !== null">
+        <div class="tax-header">Tax Breakdown</div>
+        <div class="tax-cols">
+          <div class="tax-col" *ngIf="result.goods.cgst_rate !== null && result.goods.cgst_rate > 0">
+            <div class="tax-label">CGST ({{ result.goods.cgst_rate }}%)</div>
+            <div class="tax-val">₹{{ result.goods.cgst_amount | number:'1.2-2' }}</div>
+          </div>
+          <div class="tax-col" *ngIf="result.goods.sgst_rate !== null && result.goods.sgst_rate > 0">
+            <div class="tax-label">SGST ({{ result.goods.sgst_rate }}%)</div>
+            <div class="tax-val">₹{{ result.goods.sgst_amount | number:'1.2-2' }}</div>
+          </div>
+          <div class="tax-col" *ngIf="result.goods.igst_rate !== null && result.goods.igst_rate > 0">
+            <div class="tax-label">IGST ({{ result.goods.igst_rate }}%)</div>
+            <div class="tax-val">₹{{ result.goods.igst_amount | number:'1.2-2' }}</div>
+          </div>
+          <div class="tax-col tax-col-total">
+            <div class="tax-label">Total Invoice Value</div>
+            <div class="tax-val tax-val-total">₹{{ result.goods.total_value | number:'1.2-2' }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TRANSPORTER & VEHICLE CARD ══ -->
+    <div class="transport-card" *ngIf="result.transport">
+      <div class="section-header">
+        <span class="section-icon">🚛</span>
+        <span class="section-title">Transporter & Vehicle</span>
+      </div>
+
+      <div class="transport-grid">
+        <!-- Transporter block -->
+        <div class="transport-block">
+          <div class="tb-icon">🏢</div>
+          <div class="tb-body">
+            <div class="tb-title">{{ result.transport.transporter_name }}</div>
+            <div class="tb-sub" *ngIf="result.transport.transporter_gstin">
+              GSTIN: <span class="tb-mono">{{ result.transport.transporter_gstin }}</span>
+            </div>
+            <div class="tb-badge tb-badge-transporter">Authorized Transporter</div>
+          </div>
+        </div>
+
+        <div class="transport-divider"></div>
+
+        <!-- Vehicle block -->
+        <div class="transport-block">
+          <div class="tb-icon">🚗</div>
+          <div class="tb-body">
+            <div class="tb-title tb-plate">{{ result.transport.vehicle_number }}</div>
+            <div class="tb-sub" *ngIf="result.transport.vehicle_type">
+              Type: {{ result.transport.vehicle_type }}
+            </div>
+            <div class="tb-badge tb-badge-vehicle">Assigned Vehicle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LEAFLET MAP CARD ── -->
+    <div class="map-card" *ngIf="result.hasMapPoints">
+      <div class="map-header">
+        <span class="map-title-icon">🗺️</span>
+        <span class="map-title">Shipment Route Map</span>
+        <span class="map-badge">Live Tracking</span>
+      </div>
+      <div class="map-legend">
+        <span class="legend-dot" style="background:#16a34a"></span> Origin &nbsp;
+        <span class="legend-dot" style="background:#3d4fd6"></span> Checkpoint &nbsp;
+        <span class="legend-dot" style="background:#dc2626"></span> Latest Location
+      </div>
+      <div id="shipment-map" style="height:380px; width:100%; border-radius:0 0 24px 24px;"></div>
+    </div>
+
+    <!-- No map data notice -->
+    <div class="no-map-notice" *ngIf="result.hasTimeline && !result.hasMapPoints">
+      <span>🗺️</span> Map not available — location coordinates not recorded for this shipment.
+    </div>
+
+    <!-- ── TIMELINE CARD ── -->
+    <div class="timeline-card" *ngIf="result.hasTimeline">
+      <div class="tl-header">
+        <div class="tl-title">
+          <span class="tl-title-icon">🚚</span>
+          Shipment Journey
+        </div>
+        <div class="tl-count">{{ result.timeline.length }} update{{ result.timeline.length > 1 ? 's' : '' }}</div>
+      </div>
+
+      <div class="tl-body">
+        <div class="tl-item"
+          *ngFor="let step of result.timeline"
+          [class.tl-current]="step.isCurrent"
+          [class.tl-done]="!step.isCurrent">
+
+          <div class="tl-left">
+            <div class="tl-dot"
+              [class.dot-current]="step.isCurrent"
+              [class.dot-done]="!step.isCurrent">
+              {{ step.isCurrent ? '●' : '✓' }}
+            </div>
+            <div class="tl-line"></div>
+          </div>
+
+          <div class="tl-content">
+            <div class="tl-step-header">
+              <span class="tl-status-label">{{ step.status_label }}</span>
+              <span class="tl-time">{{ step.timestamp | date:'dd MMM yyyy, hh:mm a' }}</span>
+            </div>
+            <div class="tl-location" *ngIf="step.location">
+              📍 {{ step.location }}
+            </div>
+            <div class="tl-note" *ngIf="step.note">{{ step.note }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No updates yet -->
+    <div class="no-timeline" *ngIf="!result.hasTimeline">
+      <div class="nt-icon">📭</div>
+      <div class="nt-text">No shipment updates yet.<br>Updates will appear once the shipment is picked up.</div>
+    </div>
+
+  </div><!-- /result-section -->
+
+  <!-- ══ NOT FOUND ══ -->
+  <div class="not-found" *ngIf="notFound">
+    <div class="nf-icon">🔍</div>
+    <h3>EWB Not Found</h3>
+    <p>No records found for <strong>{{ ewbNo }}</strong>.<br>Please verify the number and try again.</p>
+    <button class="btn-search-again" (click)="clear()">Try Again</button>
+  </div>
+
+  <!-- ══ ERROR ══ -->
+  <div class="not-found" *ngIf="error">
+    <div class="nf-icon">⚠️</div>
+    <h3>Something went wrong</h3>
+    <p>{{ error }}</p>
+    <button class="btn-search-again" (click)="search()">Retry</button>
+  </div>
+
+</div>

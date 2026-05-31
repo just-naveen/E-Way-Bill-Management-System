@@ -1,0 +1,399 @@
+<!-- ══ NAVBAR — Glassmorphism ══ -->
+<nav class="wb-nav" [class.wb-nav--scrolled]="isScrolled">
+  <div class="wb-nav__inner">
+    <a class="wb-nav__brand" routerLink="/">
+      <span class="wb-nav__logo-text">WayBill<strong>Pro</strong></span>
+    </a>
+
+    <div class="wb-nav__links">
+      <a class="wb-nav__link" (click)="scrollTo('services')">Services</a>
+      <a class="wb-nav__link" (click)="scrollTo('process')">Process</a>
+      <a class="wb-nav__link" routerLink="/track">Tracking</a>
+      <a class="wb-nav__link" (click)="scrollTo('contact')">Contact</a>
+    </div>
+
+    <div class="wb-nav__actions">
+      <button class="wb-btn--ghost" routerLink="/login">Login</button>
+      <button class="wb-btn--primary" routerLink="/login">Get Started</button>
+    </div>
+
+    <button class="wb-hamburger" (click)="mobileOpen=!mobileOpen" [class.wb-hamburger--open]="mobileOpen">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <div class="wb-mobile-menu" [class.wb-mobile-menu--open]="mobileOpen">
+    <a (click)="scrollTo('services'); mobileOpen=false">Services</a>
+    <a (click)="scrollTo('process');  mobileOpen=false">Process</a>
+    <a routerLink="/track"  (click)="mobileOpen=false">Tracking</a>
+    <a (click)="scrollTo('contact');  mobileOpen=false">Contact</a>
+    <div class="wb-mob-sep"></div>
+    <a routerLink="/login"  (click)="mobileOpen=false">Login</a>
+    <a routerLink="/login"  (click)="mobileOpen=false" class="wb-mob-cta">Get Started Free →</a>
+  </div>
+</nav>
+
+<!-- ══ HERO ══ -->
+<section class="wb-hero">
+  <div class="wb-hero__bg-glow"></div>
+  <div class="wb-hero__inner">
+
+    <div class="wb-hero__pill">
+      <span class="wb-pill-dot"></span>
+      Trusted by 8,400+ Indian businesses
+    </div>
+
+    <h1 class="wb-hero__h1">
+      The Smarter Way to Manage
+      <span class="wb-hero__accent">E-Way Bills</span>
+    </h1>
+
+    <p class="wb-hero__desc">
+      Generate, track and manage e-way bills and consignments in minutes —
+      built for modern logistics businesses across India.
+    </p>
+
+    <div class="wb-hero__btns">
+      <button class="wb-btn--hero-primary" routerLink="/login">Start for Free</button>
+      <button class="wb-btn--hero-secondary" routerLink="/track">Track a Shipment</button>
+    </div>
+
+    <!-- Quick Track Bar -->
+    <div class="wb-track-bar">
+      <div class="wb-track-bar__input-wrap">
+        <span class="wb-track-bar__icon">📦</span>
+        <input [(ngModel)]="trackNo"
+               placeholder="Enter consignment no. or EWB number..."
+               (keyup.enter)="quickTrack()" />
+      </div>
+      <button class="wb-track-bar__btn" (click)="quickTrack()">Track Status</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══ TRUST STRIP ══ -->
+<div class="wb-trust-strip">
+  <div class="wb-trust-strip__inner">
+    <span class="wb-trust-strip__label">TRUSTED &amp; COMPLIANT</span>
+    <div class="wb-trust-strip__badges">
+      <div class="wb-trust-badge">✅ GST Council Approved</div>
+      <div class="wb-trust-badge">🔒 256-bit SSL</div>
+      <div class="wb-trust-badge">🏅 ISO 27001 Certified</div>
+      <div class="wb-trust-badge">🏦 NPCI Integrated</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SERVICES — Bento Grid ══ -->
+<section class="wb-section" id="services">
+  <div class="wb-container">
+    <div class="wb-section__head wb-section__head--center">
+      <h2 class="wb-section__title">Everything your logistics needs</h2>
+      <p class="wb-section__sub">Scalable solutions for small transport agencies to national logistics fleets.</p>
+    </div>
+
+    <div class="wb-bento">
+      <!-- Large card — EWB Generation -->
+      <div class="wb-bento__card wb-bento__card--large wb-bento__card--light">
+        <div class="wb-bento__icon wb-bento__icon--indigo">🧾</div>
+        <h3 class="wb-bento__title">E-Way Bill Generation</h3>
+        <p class="wb-bento__desc">Automated API-linked generation with bulk upload support and real-time validation.</p>
+        <ul class="wb-bento__checklist">
+          <li>✅ Direct NIC Portal Integration</li>
+          <li>✅ Error-proof Validation Engine</li>
+        </ul>
+        <div class="wb-bento__img-wrap">
+          <div class="wb-bento__img-real">
+            <img src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80"
+                 alt="Modern logistics warehouse"
+                 class="wb-warehouse-img" />
+            <div class="wb-bento__img-overlay"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tall card — Consignment -->
+      <div class="wb-bento__card wb-bento__card--tall wb-bento__card--dark">
+        <div class="wb-bento__icon wb-bento__icon--glass">📦</div>
+        <h3 class="wb-bento__title wb-bento__title--light">Consignment Booking</h3>
+        <p class="wb-bento__desc wb-bento__desc--light">Simplified booking flow for LTL and FTL consignments with digital LR generation.</p>
+        <div class="wb-bento__footer">
+          <div class="wb-avatars">
+            <div class="wb-avatar">R</div>
+            <div class="wb-avatar">S</div>
+            <div class="wb-avatar wb-avatar--count">+12</div>
+          </div>
+          <p class="wb-bento__used-by">USED BY 400+ DISPATCH TEAMS</p>
+        </div>
+      </div>
+
+      <!-- Small cards -->
+      <div class="wb-bento__card wb-bento__card--sm wb-bento__card--muted">
+        <div class="wb-bento__sm-icon">🚛</div>
+        <h3 class="wb-bento__title wb-bento__title--sm">Fleet Management</h3>
+        <p class="wb-bento__desc wb-bento__desc--sm">Monitor vehicle availability, driver assignments, and maintenance logs in one view.</p>
+      </div>
+
+      <div class="wb-bento__card wb-bento__card--sm wb-bento__card--light2">
+        <div class="wb-bento__sm-icon">📊</div>
+        <h3 class="wb-bento__title wb-bento__title--sm">Reports &amp; Analytics</h3>
+        <p class="wb-bento__desc wb-bento__desc--sm">Download GST-compliant reports and operational performance dashboards monthly.</p>
+      </div>
+
+      <div class="wb-bento__card wb-bento__card--sm wb-bento__card--light2">
+        <div class="wb-bento__sm-icon">👥</div>
+        <h3 class="wb-bento__title wb-bento__title--sm">Multi-User Access</h3>
+        <p class="wb-bento__desc wb-bento__desc--sm">Role-based access control for branch managers, data entry staff, and clients.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ HOW IT WORKS ══ -->
+<section class="wb-section wb-section--low" id="process">
+  <div class="wb-container">
+    <div class="wb-section__head wb-section__head--split">
+      <div>
+        <h2 class="wb-section__title">Up and running in 4 steps</h2>
+        <p class="wb-section__sub">Our onboarding is designed to be frictionless, getting your logistics business digital in under 24 hours.</p>
+      </div>
+      <button class="wb-btn--outline">View Full Guide</button>
+    </div>
+
+    <div class="wb-steps">
+      <div class="wb-steps__connector"></div>
+      <div class="wb-step" *ngFor="let step of steps; let i = index">
+        <div class="wb-step__num" [class.wb-step__num--active]="i === 0" [class.wb-step__num--accent]="i === 3">
+          {{ i + 1 }}
+        </div>
+        <div class="wb-step__body">
+          <h4 class="wb-step__title">{{ step.title }}</h4>
+          <p class="wb-step__desc">{{ step.desc }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ROLES ══ -->
+<section class="wb-section wb-section--surface">
+  <div class="wb-container">
+    <div class="wb-roles-banner">
+      <div class="wb-roles-banner__glow"></div>
+
+      <div class="wb-roles-banner__content">
+        <h2 class="wb-roles-banner__title">Built for every team member</h2>
+
+        <div class="wb-roles-list">
+          <div class="wb-role-item">
+            <div class="wb-role-item__icon">👑</div>
+            <div>
+              <h4 class="wb-role-item__name">Admin Control</h4>
+              <p class="wb-role-item__desc">Full visibility of all branches, revenue analytics, and billing settings.</p>
+            </div>
+          </div>
+
+          <div class="wb-role-item wb-role-item--featured">
+            <div class="wb-role-item__icon wb-role-item__icon--teal">⚙️</div>
+            <div>
+              <div class="wb-role-item__name-row">
+                <h4 class="wb-role-item__name">Staff Operations</h4>
+                <span class="wb-role-badge">MOST USED</span>
+              </div>
+              <p class="wb-role-item__desc">High-speed data entry, QR code scanning, and consignment management.</p>
+            </div>
+          </div>
+
+          <div class="wb-role-item">
+            <div class="wb-role-item__icon">📦</div>
+            <div>
+              <h4 class="wb-role-item__name">Customer View</h4>
+              <p class="wb-role-item__desc">Self-service tracking dashboard and downloadable invoices for clients.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mock dashboard widget -->
+      <div class="wb-roles-banner__mockup">
+        <div class="wb-mockup">
+          <div class="wb-mockup__topbar">
+            <div class="wb-mockup__dot wb-mockup__dot--red"></div>
+            <div class="wb-mockup__dot wb-mockup__dot--green"></div>
+            <div class="wb-mockup__dot wb-mockup__dot--gray"></div>
+            <div class="wb-mockup__title-bar"></div>
+          </div>
+          <div class="wb-mockup__search"></div>
+          <div class="wb-mockup__chart">
+            <div class="wb-mockup__bar-icon">📊</div>
+            <div class="wb-mockup__bars">
+              <div class="wb-bar" style="height:40%"></div>
+              <div class="wb-bar" style="height:70%"></div>
+              <div class="wb-bar" style="height:55%"></div>
+              <div class="wb-bar" style="height:90%"></div>
+              <div class="wb-bar" style="height:65%"></div>
+              <div class="wb-bar" style="height:80%"></div>
+            </div>
+          </div>
+          <div class="wb-mockup__cards">
+            <div class="wb-mockup__card"></div>
+            <div class="wb-mockup__card"></div>
+            <div class="wb-mockup__card"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ STATS ══ -->
+<section class="wb-section wb-section--surface">
+  <div class="wb-container">
+    <div class="wb-stats">
+      <div class="wb-stat" *ngFor="let s of statsData">
+        <div class="wb-stat__num">{{ s.num }}</div>
+        <div class="wb-stat__label">{{ s.label }}</div>
+        <div class="wb-stat__desc">{{ s.desc }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CONTACT ══ -->
+<section class="wb-section wb-section--low" id="contact">
+  <div class="wb-container">
+    <div class="wb-contact-grid">
+
+      <div class="wb-contact-left">
+        <h2 class="wb-section__title">We'd love to hear<br>from you</h2>
+        <p class="wb-section__sub" style="margin-top:16px">Have questions about GST compliance or custom fleet requirements? Our experts are ready to help.</p>
+
+        <div class="wb-contact-items">
+          <div class="wb-ci">
+            <div class="wb-ci__icon">📞</div>
+            <div>
+              <div class="wb-ci__label">Call Us</div>
+              <div class="wb-ci__val">1800-456-7890 (Toll Free)</div>
+            </div>
+          </div>
+          <div class="wb-ci">
+            <div class="wb-ci__icon">✉️</div>
+            <div>
+              <div class="wb-ci__label">Email Support</div>
+              <div class="wb-ci__val">support&#64;waybillpro.in</div>
+            </div>
+          </div>
+          <div class="wb-ci">
+            <div class="wb-ci__icon">📍</div>
+            <div>
+              <div class="wb-ci__label">Headquarters</div>
+              <div class="wb-ci__val">Anna Salai, Chennai – 600 002</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wb-contact-form">
+        <!-- ── Success Alert ── -->
+        <div class="wb-alert wb-alert--success" *ngIf="contactSent">
+          <span class="wb-alert-icon">✅</span>
+          <div>
+            <strong>Message sent successfully!</strong><br>
+            <span>We've received your message and will get back to you within 24 hours.</span>
+          </div>
+        </div>
+
+        <!-- ── Error Alert ── -->
+        <div class="wb-alert wb-alert--error" *ngIf="contactError">
+          <span class="wb-alert-icon">❌</span>
+          <div>{{ contactError }}</div>
+        </div>
+
+        <!-- ── Form fields (hidden after success) ── -->
+        <ng-container *ngIf="!contactSent">
+          <div class="wb-form-row-2">
+            <div class="wb-field">
+              <label>Full Name <span class="wb-required">*</span></label>
+              <input [(ngModel)]="contact.firstName"
+                     placeholder="Rahul Sharma"
+                     [class.wb-input-error]="contactError && !contact.firstName.trim()" />
+            </div>
+            <div class="wb-field">
+              <label>Work Email <span class="wb-required">*</span></label>
+              <input type="email" [(ngModel)]="contact.email"
+                     placeholder="rahul@logistics.com"
+                     [class.wb-input-error]="contactError && !contact.email.trim()" />
+            </div>
+          </div>
+          <div class="wb-field">
+            <label>Company Name <span class="wb-optional">(optional)</span></label>
+            <input [(ngModel)]="contact.lastName" placeholder="Sharma Transporters Pvt Ltd" />
+          </div>
+          <div class="wb-field">
+            <label>Message <span class="wb-required">*</span></label>
+            <textarea [(ngModel)]="contact.message"
+                      placeholder="Tell us about your requirements..."
+                      rows="4"
+                      [class.wb-input-error]="contactError && !contact.message.trim()"></textarea>
+          </div>
+          <button class="wb-btn--form-submit" (click)="sendContact()" [disabled]="contactSending">
+            <span *ngIf="!contactSending">Send Message →</span>
+            <span *ngIf="contactSending" class="wb-sending-wrap">
+              <span class="wb-send-spinner"></span> Sending...
+            </span>
+          </button>
+        </ng-container>
+
+        <!-- ── Send another message (after success) ── -->
+        <button *ngIf="contactSent" class="wb-btn--form-reset" (click)="contactSent=false">
+          Send Another Message
+        </button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══ -->
+<footer class="wb-footer">
+  <div class="wb-container">
+    <div class="wb-footer__grid">
+      <div class="wb-footer__brand">
+        <div class="wb-footer__logo">WayBill<strong>Pro</strong></div>
+        <p class="wb-footer__tagline">Empowering Indian logistics with high-speed digital compliance and fleet intelligence tools.</p>
+      </div>
+
+      <div class="wb-footer__col">
+        <div class="wb-footer__col-title">Platform</div>
+        <a routerLink="/login">E-Way Bill Generation</a>
+        <a routerLink="/login">Consignment Booking</a>
+        <a routerLink="/login">Fleet Management</a>
+        <a routerLink="/login">Compliance Reports</a>
+      </div>
+
+      <div class="wb-footer__col">
+        <div class="wb-footer__col-title">Company</div>
+        <a (click)="scrollTo('services')">Services</a>
+        <a (click)="scrollTo('process')">How It Works</a>
+        <a (click)="scrollTo('contact')">Contact</a>
+      </div>
+
+      <div class="wb-footer__col">
+        <div class="wb-footer__col-title">Legal</div>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+        <a href="#">GST Compliance</a>
+      </div>
+    </div>
+
+    <div class="wb-footer__bottom">
+      <span>© 2026 WayBillPro Technologies Pvt. Ltd. All rights reserved.</span>
+      <div class="wb-footer__badges">
+        <span>🔒 SSL Secured</span>
+        <span>🇮🇳 Made in India</span>
+      </div>
+    </div>
+  </div>
+</footer>

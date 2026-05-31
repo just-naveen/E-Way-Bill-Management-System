@@ -1,0 +1,156 @@
+<!-- bulk-ewb-upload.html -->
+<!-- Drop this component anywhere — standalone, inside the ewaybill page, or as a dialog -->
+
+<div class="bulk-wrap">
+
+  <!-- ── Header ── -->
+  <div class="bulk-header">
+    <div>
+      <div class="bulk-title">📤 Bulk EWB Upload</div>
+      <div class="bulk-sub">Upload a CSV file to create multiple E-Way Bills at once</div>
+    </div>
+    <a class="template-btn" (click)="downloadTemplate()">
+      ⬇ Download Template
+    </a>
+  </div>
+
+  <!-- ── Drop zone ── -->
+  <div
+    class="drop-zone"
+    [class.drag-over]="isDragging"
+    [class.has-file]="selectedFile"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave()"
+    (drop)="onDrop($event)"
+    (click)="fileInput.click()">
+
+    <input #fileInput type="file" accept=".csv" hidden (change)="onFileSelect($event)">
+
+    <ng-container *ngIf="!selectedFile">
+      <div class="drop-icon">📂</div>
+      <div class="drop-text">Drag & drop your CSV here, or <span class="drop-link">browse</span></div>
+      <div class="drop-hint">Max 5 MB · UTF-8 encoded · .csv only</div>
+    </ng-container>
+
+    <ng-container *ngIf="selectedFile">
+      <div class="drop-icon">📄</div>
+      <div class="drop-text file-name">{{ selectedFile.name }}</div>
+      <div class="drop-hint">{{ (selectedFile.size / 1024).toFixed(1) }} KB ·
+        <span class="drop-link" (click)="clearFile($event)">Remove</span>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- ── Column reference ── -->
+  <div class="col-ref">
+    <div class="col-ref-title">Required columns</div>
+    <div class="col-tags">
+      <span class="col-tag required">ewb_number</span>
+      <span class="col-tag required">valid_upto</span>
+      <span class="col-tag">consignment_no</span>
+      <span class="col-tag">hsn_code</span>
+      <span class="col-tag">goods_description</span>
+      <span class="col-tag">quantity</span>
+      <span class="col-tag">unit</span>
+      <span class="col-tag">taxable_value</span>
+      <span class="col-tag">cgst_rate</span>
+      <span class="col-tag">sgst_rate</span>
+      <span class="col-tag">igst_rate</span>
+      <span class="col-tag">distance_km</span>
+      <span class="col-tag">status</span>
+    </div>
+    <div class="col-note">
+      <strong>valid_upto</strong> format: <code>YYYY-MM-DD HH:MM</code> &nbsp;|&nbsp;
+      <strong>status</strong>: active / cancelled / expired / delivered
+    </div>
+  </div>
+
+  <!-- ── Upload button ── -->
+  <button
+    class="upload-btn"
+    [disabled]="!selectedFile || uploading"
+    (click)="upload()">
+    <span *ngIf="!uploading">🚀 Upload & Import</span>
+    <span *ngIf="uploading" class="uploading-text">
+      <span class="btn-spinner"></span> Uploading...
+    </span>
+  </button>
+
+  <!-- ── Progress indicator ── -->
+  <div class="progress-wrap" *ngIf="uploading">
+    <div class="progress-bar">
+      <div class="progress-fill" style="width:100%;animation:progress-pulse 1.2s ease-in-out infinite"></div>
+    </div>
+    <span class="progress-label" style="color:#6366f1">Processing...</span>
+  </div>
+
+  <!-- ── Result summary ── -->
+  <div class="result-card" *ngIf="result">
+
+    <div class="result-stats">
+      <div class="stat-pill stat-created">
+        <span class="stat-num">{{ result.created }}</span>
+        <span class="stat-lbl">Created</span>
+      </div>
+      <div class="stat-pill stat-skipped">
+        <span class="stat-num">{{ result.skipped }}</span>
+        <span class="stat-lbl">Skipped (duplicate)</span>
+      </div>
+      <div class="stat-pill stat-error">
+        <span class="stat-num">{{ result.errors.length }}</span>
+        <span class="stat-lbl">Errors</span>
+      </div>
+      <div class="stat-pill stat-total">
+        <span class="stat-num">{{ result.total_rows }}</span>
+        <span class="stat-lbl">Total rows</span>
+      </div>
+    </div>
+
+    <!-- Success banner -->
+    <div class="banner banner-success" *ngIf="result.created > 0 && result.errors.length === 0">
+      ✅ All {{ result.created }} E-Way Bill(s) imported successfully!
+    </div>
+    <div class="banner banner-partial" *ngIf="result.created > 0 && result.errors.length > 0">
+      ⚠️ {{ result.created }} imported with {{ result.errors.length }} error(s). Review below.
+    </div>
+    <div class="banner banner-error" *ngIf="result.created === 0 && result.errors.length > 0">
+      ❌ No records imported. Fix the errors below and try again.
+    </div>
+    <div class="banner banner-partial" *ngIf="result.created === 0 && result.skipped > 0 && result.errors.length === 0">
+      ⚠️ All {{ result.skipped }} row(s) were skipped — EWB numbers already exist in the database.
+    </div>
+
+    <!-- Error table -->
+    <div class="error-section" *ngIf="result.errors.length > 0">
+      <div class="error-title">⚠️ Row errors ({{ result.errors.length }})</div>
+      <div class="error-table-wrap">
+        <table class="error-table">
+          <thead>
+            <tr>
+              <th>Row</th>
+              <th>EWB Number</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let e of result.errors">
+              <td class="td-row">{{ e.row }}</td>
+              <td class="td-mono">{{ e.ewb_number || '—' }}</td>
+              <td class="td-reason">{{ e.reason }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button class="export-errors-btn" (click)="exportErrors()">
+        ⬇ Export error rows as CSV
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ── API error ── -->
+  <div class="api-error" *ngIf="apiError">
+    ❌ {{ apiError }}
+  </div>
+
+</div>

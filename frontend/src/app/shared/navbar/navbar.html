@@ -1,0 +1,83 @@
+<div class="navbar">
+
+  <!-- Left: breadcrumb -->
+  <div class="navbar-left">
+    <div class="page-breadcrumb">
+      <a class="breadcrumb-home" routerLink="/">🏠 Home</a>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-current">{{ title }}</span>
+    </div>
+  </div>
+
+  <!-- Right -->
+  <div class="navbar-right">
+
+    <!-- Date -->
+    <div class="navbar-date">
+      <span class="date-icon">📅</span>
+      {{ today | date:'EEE, dd MMM yyyy' }}
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <!-- Role badge -->
+    <div class="role-badge" [ngClass]="roleBadgeClass">
+      {{ userRole | titlecase }}
+    </div>
+
+    <!-- ── Bell with Expiry Dropdown ── -->
+    <div class="bell-wrap" (click)="$event.stopPropagation()">
+      <div class="nav-bell" (click)="toggleAlerts()" [class.bell-active]="showAlerts">
+        <span class="bell-icon" [class.bell-ring]="notifCount > 0">🔔</span>
+        <span class="bell-badge" *ngIf="notifCount > 0">{{ notifCount }}</span>
+      </div>
+
+      <!-- Dropdown -->
+      <div class="alerts-dropdown" *ngIf="showAlerts">
+        <div class="alerts-header">
+          <span class="alerts-title">⚠️ Expiry Alerts</span>
+          <span class="alerts-close" (click)="closeAlerts()">✕</span>
+        </div>
+
+        <!-- Empty -->
+        <div class="alerts-empty" *ngIf="expiringEWBs.length === 0">
+          <div class="alerts-empty-icon">✅</div>
+          <div class="alerts-empty-text">All E-Way Bills are valid</div>
+          <div class="alerts-empty-sub">No bills expiring in the next 24 hours</div>
+        </div>
+
+        <!-- Items -->
+        <div class="alerts-list" *ngIf="expiringEWBs.length > 0">
+          <div class="alert-item" *ngFor="let e of expiringEWBs" [ngClass]="urgencyClass(e.valid_upto)">
+            <div class="alert-item-left">
+              <div class="alert-ewb-no">{{ e.ewb_number }}</div>
+              <div class="alert-cns">{{ e.consignment_no || 'No consignment linked' }}</div>
+              <div class="alert-expiry">Expires: {{ e.valid_upto | date:'dd MMM, hh:mm a' }}</div>
+            </div>
+            <div class="alert-time-badge" [ngClass]="urgencyClass(e.valid_upto)">
+              {{ hoursLeft(e.valid_upto) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="alerts-footer" *ngIf="expiringEWBs.length > 0">
+          <a routerLink="/portal/ewaybill" (click)="closeAlerts()" class="alerts-view-all">
+            View all E-Way Bills →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <!-- User pill -->
+    <div class="nav-user-pill">
+      <div class="nav-avatar-circle" [ngClass]="avatarClass">{{ initials }}</div>
+      <div class="nav-user-info">
+        <span class="nav-user-name">{{ displayName }}</span>
+      </div>
+    </div>
+
+  </div>
+</div>

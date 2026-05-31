@@ -1,0 +1,232 @@
+<!-- ══ ACTION BAR (hidden on print) ══ -->
+<div class="action-bar no-print">
+  <div class="ab-left">
+    <div class="ab-icon">🧾</div>
+    <div>
+      <div class="ab-title">Waybill — {{ consignment?.consignment_no }}</div>
+      <div class="ab-sub">{{ consignment?.booking_date | date:'dd MMM yyyy, hh:mm a' }}</div>
+    </div>
+  </div>
+  <div class="ab-actions">
+    <button class="btn-print" (click)="print()">🖨️ Print</button>
+    <button class="btn-pdf"   (click)="downloadPdf()">⬇️ Download PDF</button>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div class="loading-wrap no-print" *ngIf="loading">
+  <div class="spinner"></div> Loading consignment...
+</div>
+
+<div class="error-msg no-print" *ngIf="errorMsg">⚠️ {{ errorMsg }}</div>
+
+<!-- ══ WAYBILL DOCUMENT ══ -->
+<div class="waybill-page" id="waybill-content" *ngIf="consignment && !loading">
+
+  <!-- HEADER -->
+  <div class="wb-header">
+    <div class="wb-brand">
+      <div class="wb-logo">🚚</div>
+      <div>
+        <div class="wb-company-name">WayBill<span>Pro</span></div>
+        <div class="wb-company-tag">Logistics & E-Way Bill Management</div>
+      </div>
+    </div>
+    <div class="wb-doc-info">
+      <div class="wb-doc-title">CONSIGNMENT NOTE</div>
+      <div class="wb-doc-no">{{ consignment.consignment_no }}</div>
+      <div class="wb-doc-date">Date: {{ consignment.booking_date | date:'dd/MM/yyyy' }}</div>
+    </div>
+  </div>
+
+  <div class="wb-divider"></div>
+
+  <!-- ROUTE BANNER -->
+  <div class="route-banner">
+    <div class="route-city">
+      <div class="rc-label">FROM</div>
+      <div class="rc-city">{{ consignment.origin }}</div>
+    </div>
+    <div class="route-arrow">
+      <div class="ra-line"></div>
+      <div class="ra-icon">✈</div>
+      <div class="ra-line"></div>
+    </div>
+    <div class="route-city route-dest">
+      <div class="rc-label">TO</div>
+      <div class="rc-city">{{ consignment.destination }}</div>
+    </div>
+    <div class="route-meta">
+      <div class="rm-item"><span class="rm-label">Service</span><span class="rm-val">{{ consignment.service_type | titlecase }}</span></div>
+      <div class="rm-item"><span class="rm-label">Payment</span><span class="rm-val">{{ consignment.payment_mode | titlecase }}</span></div>
+      <div class="rm-item" *ngIf="consignment.doc_type"><span class="rm-label">Type</span><span class="rm-val">{{ consignment.doc_type | titlecase }}</span></div>
+    </div>
+  </div>
+
+  <!-- CONSIGNOR / CONSIGNEE -->
+  <div class="parties-grid">
+    <div class="party-box">
+      <div class="party-title">📤 CONSIGNOR (Sender)</div>
+      <div class="party-name">{{ consignment.consignor_name }}</div>
+      <div class="party-detail" *ngIf="consignment.consignor_address">{{ consignment.consignor_address }}</div>
+      <div class="party-detail" *ngIf="consignment.consignor_city">{{ consignment.consignor_city }}<span *ngIf="consignment.consignor_state">, {{ consignment.consignor_state }}</span></div>
+      <div class="party-detail" *ngIf="consignment.consignor_pincode">PIN: {{ consignment.consignor_pincode }}</div>
+      <div class="party-detail" *ngIf="consignment.consignor_mobile">📞 {{ consignment.consignor_mobile }}</div>
+      <div class="party-detail" *ngIf="consignment.consignor_gstin" style="color:#6366f1;font-weight:600">🏷️ GSTIN: {{ consignment.consignor_gstin }}</div>
+    </div>
+    <div class="party-box party-right">
+      <div class="party-title">📥 CONSIGNEE (Receiver)</div>
+      <div class="party-name">{{ consignment.consignee_name }}</div>
+      <div class="party-detail" *ngIf="consignment.consignee_address">{{ consignment.consignee_address }}</div>
+      <div class="party-detail" *ngIf="consignment.consignee_city">{{ consignment.consignee_city }}<span *ngIf="consignment.consignee_state">, {{ consignment.consignee_state }}</span></div>
+      <div class="party-detail" *ngIf="consignment.consignee_mobile">📞 {{ consignment.consignee_mobile }}</div>
+      <div class="party-detail" *ngIf="consignment.consignee_gstin" style="color:#6366f1;font-weight:600">🏷️ GSTIN: {{ consignment.consignee_gstin }}</div>
+    </div>
+  </div>
+
+  <!-- SHIPMENT DETAILS -->
+  <div class="section-title">📦 Shipment Details</div>
+  <table class="detail-table">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Pieces</th>
+        <th>Actual Wt (kg)</th>
+        <th>Vol. Wt (kg)</th>
+        <th>Chargeable Wt (kg)</th>
+        <th>Invoice Value (₹)</th>
+        <th>Invoice No.</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{ consignment.product_category || 'General Goods' }}</td>
+        <td class="td-center">{{ consignment.total_pieces }}</td>
+        <td class="td-center">{{ consignment.actual_weight | number:'1.2-2' }}</td>
+        <td class="td-center">{{ consignment.volumetric_weight | number:'1.2-2' }}</td>
+        <td class="td-center fw-bold">{{ consignment.chargeable_weight | number:'1.2-2' }}</td>
+        <td class="td-right">₹{{ consignment.invoice_value | number:'1.2-2' }}</td>
+        <td>{{ consignment.invoice_number || '—' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- BILLING -->
+  <div class="billing-grid">
+
+    <!-- EWB Info -->
+    <div class="billing-left">
+      <div class="section-title">🧾 E-Way Bill Details</div>
+      <div class="info-rows">
+        <div class="ir-row">
+          <span class="ir-label">EWB Number</span>
+          <span class="ir-val ewb-no">{{ consignment.ewaybill_no || ewbData?.ewb_number || '—' }}</span>
+        </div>
+        <div class="ir-row" *ngIf="ewbData">
+          <span class="ir-label">Status</span>
+          <span class="ir-val"><span class="status-chip status-{{ ewbData.status }}">{{ ewbData.status | titlecase }}</span></span>
+        </div>
+        <div class="ir-row" *ngIf="ewbData?.valid_upto">
+          <span class="ir-label">Valid Upto</span>
+          <span class="ir-val">{{ ewbData.valid_upto | date:'dd/MM/yyyy HH:mm' }}</span>
+        </div>
+        <div class="ir-row" *ngIf="ewbData?.hsn_code">
+          <span class="ir-label">HSN Code</span>
+          <span class="ir-val">{{ ewbData.hsn_code }}</span>
+        </div>
+        <div class="ir-row" *ngIf="ewbData?.distance_km">
+          <span class="ir-label">Distance</span>
+          <span class="ir-val">{{ ewbData.distance_km }} km</span>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:16px">🚛 Transport Info</div>
+      <div class="info-rows">
+        <div class="ir-row">
+          <span class="ir-label">Delivery Type</span>
+          <span class="ir-val">{{ consignment.delivery_type | titlecase }}</span>
+        </div>
+        <div class="ir-row">
+          <span class="ir-label">Freight Charged By</span>
+          <span class="ir-val">{{ consignment.freight_charge_by | titlecase }}</span>
+        </div>
+        <div class="ir-row" *ngIf="consignment.billing_branch">
+          <span class="ir-label">Billing Branch</span>
+          <span class="ir-val">{{ consignment.billing_branch }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Billing Summary -->
+    <div class="billing-right">
+      <div class="section-title">💰 Billing Summary</div>
+      <div class="billing-table">
+        <div class="bt-row">
+          <span>Rate / kg</span>
+          <span>₹{{ consignment.rate_per_kg | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row">
+          <span>Freight Amount</span>
+          <span>₹{{ consignment.freight_amt | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row" *ngIf="+consignment.fsc_amt > 0">
+          <span>Fuel Surcharge (FSC)</span>
+          <span>₹{{ consignment.fsc_amt | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row" *ngIf="+consignment.other_charge > 0">
+          <span>Other Charges</span>
+          <span>₹{{ consignment.other_charge | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row bt-subtotal">
+          <span>Sub Total</span>
+          <span>₹{{ subTotal | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row" *ngIf="+consignment.cgst > 0">
+          <span>CGST</span>
+          <span>₹{{ consignment.cgst | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row" *ngIf="+consignment.sgst > 0">
+          <span>SGST</span>
+          <span>₹{{ consignment.sgst | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row" *ngIf="+consignment.igst > 0">
+          <span>IGST</span>
+          <span>₹{{ consignment.igst | number:'1.2-2' }}</span>
+        </div>
+        <div class="bt-row bt-net">
+          <span>NET TOTAL</span>
+          <span>₹{{ netTotal | number:'1.2-2' }}</span>
+        </div>
+      </div>
+      <div class="amount-words">
+        <strong>Amount in words:</strong> {{ numberToWords(netTotal) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="wb-footer">
+    <div class="wb-footer-left">
+      <div class="footer-label">Terms & Conditions</div>
+      <div class="footer-terms">
+        1. Goods are accepted subject to standard terms and conditions.<br>
+        2. Company is not responsible for delay due to natural calamities or government restrictions.<br>
+        3. Claims must be filed within 7 days of delivery.<br>
+        4. This is a computer generated document.
+      </div>
+    </div>
+    <div class="wb-footer-right">
+      <div class="sig-box">
+        <div class="sig-line"></div>
+        <div class="sig-label">Authorised Signatory</div>
+        <div class="sig-company">For WayBill Pro</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wb-bottom-bar">
+    <span>Generated on {{ today | date:'dd MMM yyyy, hh:mm a' }} · WayBill Pro Logistics Platform</span>
+    <span>{{ consignment.consignment_no }}</span>
+  </div>
+
+</div>

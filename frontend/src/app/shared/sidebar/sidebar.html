@@ -1,0 +1,88 @@
+<div class="sidebar" [class.collapsed]="collapsed">
+
+  <!-- Collapse toggle button -->
+  <div class="sidebar-toggle" (click)="toggleCollapse()">
+    {{ collapsed ? '›' : '‹' }}
+  </div>
+
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="brand-logo">🚚</div>
+    <div class="brand-text">
+      <span class="brand-name">WayBill<b>Pro</b></span>
+      <span class="brand-sub">Logistics Platform</span>
+    </div>
+  </div>
+
+  <!-- User pill -->
+  <div class="sidebar-user">
+    <div class="user-avatar" [ngClass]="avatarClass">{{ initials }}</div>
+    <div class="user-info">
+      <div class="user-name">{{ displayName }}</div>
+      <div class="user-role">{{ user?.role | uppercase }}</div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="sidebar-nav">
+
+    <div class="sidebar-section-label">Main Menu</div>
+
+    <ng-container *ngIf="isAdminOrStaff">
+      <a *ngFor="let item of menuItems"
+         [routerLink]="item.route"
+         class="nav-item"
+         [class.active]="isActive(item.route)"
+         [attr.data-label]="item.label">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+        <!-- Show expiry badge on E-Way Bill link -->
+        <span class="nav-badge" *ngIf="item.route === '/portal/ewaybill' && expiringCount > 0">
+          {{ expiringCount }}
+        </span>
+      </a>
+    </ng-container>
+
+    <!-- Customer: only dashboard + track -->
+    <ng-container *ngIf="isCustomer">
+      <a routerLink="/portal/dashboard"
+         class="nav-item"
+         [class.active]="isActive('/portal/dashboard')"
+         data-label="Dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a *ngFor="let item of customerMenuItems"
+         [routerLink]="item.route"
+         class="nav-item"
+         [class.active]="isActive(item.route)"
+         [attr.data-label]="item.label">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    </ng-container>
+
+    <!-- Admin-only section -->
+    <ng-container *ngIf="isAdmin">
+      <div class="sidebar-section-label" style="margin-top:10px">Admin</div>
+      <a *ngFor="let item of adminMenuItems"
+         [routerLink]="item.route"
+         class="nav-item"
+         [class.active]="isActive(item.route)"
+         [attr.data-label]="item.label">
+        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    </ng-container>
+
+  </nav>
+
+  <!-- Logout -->
+  <div class="sidebar-footer">
+    <button class="logout-btn" (click)="logout()">
+      <span class="nav-icon">🚪</span>
+      <span class="logout-label">Logout</span>
+    </button>
+  </div>
+
+</div>
