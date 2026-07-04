@@ -1,0 +1,8 @@
+{
+  "builds": [
+    { "src": "backend/waybill_project/wsgi.py", "use": "@vercel/python", "config": { "installCommand": "pip install -r backend/requirements.txt" } }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "backend/waybill_project/wsgi.py" }
+  ]
+}
