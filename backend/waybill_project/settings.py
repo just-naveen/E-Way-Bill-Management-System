@@ -1,11 +1,12 @@
+import os
 from pathlib import Path
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-waybill-project-secret-key-2026'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-only-key-change-me')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
@@ -56,11 +57,11 @@ WSGI_APPLICATION = 'waybill_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'waybill_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.environ.get('DB_NAME', 'waybill_db'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
         # FIX: Tell MySQL to use IST for all datetime operations.
         # Without this, __date lookups compare against UTC dates instead of
         # local IST dates, causing date filters to return wrong/empty results.
@@ -123,27 +124,17 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = 'api.User'
-# ── Gmail SMTP — Email Alerts ──────────────────────────────────
+
 # ── Gmail SMTP Configuration ──────────────────────────────────────────────────
-# STEP 1: Go to https://myaccount.google.com/apppasswords
-# STEP 2: Create App Password for "WayBillPro"
-# STEP 3: Paste the 16-character password below (remove spaces)
+# Values now come from environment variables, NOT hardcoded here.
+# Set these in your Vercel / Railway project's Environment Variables settings:
+#   EMAIL_HOST_USER = your gmail address
+#   EMAIL_HOST_PASSWORD = your Gmail App Password (16 chars, no spaces)
 # ──────────────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST          = 'smtp.gmail.com'
 EMAIL_PORT          = 587
 EMAIL_USE_TLS       = True
-EMAIL_HOST_USER     = 'naveenmailbox2003@gmail.com'
-EMAIL_HOST_PASSWORD = 'scuj wrgf inzp nshr'  # e.g. 'abcdefghijklmnop'
-DEFAULT_FROM_EMAIL  = 'WayBillPro Alerts <naveenmailbox2003@gmail.com>'
-
-# ── Default alert recipients (pre-configured) ─────────────────────────────────
-# These are saved in the DB via the Email Alerts page.
-# Run this once to seed them:
-#   python manage.py shell
-#   from api.models import EmailAlertConfig
-#   cfg, _ = EmailAlertConfig.objects.get_or_create(id=1)
-#   cfg.recipient_emails = 'iamnaveen1653@gmail.com,naveenmailboc2003@gmail.com'
-#   cfg.enabled = True
-#   cfg.alert_hours_before = 24
-#   cfg.save()
+EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL  = os.environ.get('EMAIL_HOST_USER', 'WayBillPro Alerts')
