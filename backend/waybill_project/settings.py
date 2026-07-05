@@ -26,6 +26,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -62,9 +63,6 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
         'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '3306'),
-        # FIX: Tell MySQL to use IST for all datetime operations.
-        # Without this, __date lookups compare against UTC dates instead of
-        # local IST dates, causing date filters to return wrong/empty results.
         'OPTIONS': {
             'init_command': "SET time_zone = '+05:30'",
         },
@@ -84,15 +82,16 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:4200",
-    "http://127.0.0.1:4200",   # ← FIX: Angular uses 127.0.0.1, not localhost
+    "http://127.0.0.1:4200",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# Allow common headers sent by Angular HttpClient
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",
@@ -125,12 +124,6 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = 'api.User'
 
-# ── Gmail SMTP Configuration ──────────────────────────────────────────────────
-# Values now come from environment variables, NOT hardcoded here.
-# Set these in your Vercel / Railway project's Environment Variables settings:
-#   EMAIL_HOST_USER = your gmail address
-#   EMAIL_HOST_PASSWORD = your Gmail App Password (16 chars, no spaces)
-# ──────────────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST          = 'smtp.gmail.com'
 EMAIL_PORT          = 587

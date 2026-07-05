@@ -4,3 +4,5 @@ pymysql
 gunicorn
 whitenoise
 python-decouple
+django-cors-headers
+djangorestframework-simplejwt
