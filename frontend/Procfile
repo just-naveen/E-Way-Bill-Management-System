@@ -1,1 +1,0 @@
-web: npx serve -s dist/frontend/browser -l $PORT
