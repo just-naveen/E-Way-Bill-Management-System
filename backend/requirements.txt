@@ -6,3 +6,4 @@ whitenoise
 python-decouple
 django-cors-headers
 djangorestframework-simplejwt
+dj-database-url
